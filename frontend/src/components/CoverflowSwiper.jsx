@@ -30,33 +30,33 @@ const CoverflowSwiper = ({
   const defaultSlides = [
     {
       id: 1,
-      image: "https://i.pinimg.com/736x/f2/b6/2f/f2b62fff563fcf6dc38c58cb9175bbfc.jpg",
-      hoverImage: "https://i.pinimg.com/736x/56/ce/09/56ce0939b5edc662818b5628a5fa22f0.jpg",
+      image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop",
+      hoverImage: "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?q=80&w=1935&auto=format&fit=crop",
     },
     {
       id: 2,
-      image: "https://i.pinimg.com/1200x/53/ce/88/53ce888fcd5e22616d7ce625b1f96822.jpg",
-      hoverImage: "https://i.pinimg.com/736x/f2/c0/75/f2c07589ce6850f8b91f8f25953cc393.jpg",
+      image: "https://i.pinimg.com/1200x/ab/6d/86/ab6d8652c728b8f81754cb50f6dfc625.jpg",
+      hoverImage: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop",
     },
     {
       id: 3,
-      image: "https://i.pinimg.com/736x/78/d5/5a/78d55a69dba60120005a9ab7f210926f.jpg",
-      hoverImage: "https://i.pinimg.com/1200x/f1/d3/46/f1d3468c9be40bad93c6ddface8785ea.jpg",
+      image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=1920&auto=format&fit=crop",
+      hoverImage: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=1920&auto=format&fit=crop",
     },
     {
       id: 4,
-      image: "https://i.pinimg.com/736x/8b/dc/0d/8bdc0d05624e2bdd80f2068346173ea1.jpg",
-      hoverImage: "https://i.pinimg.com/736x/32/27/7e/32277e6aad180640d0868a845f6ad6d6.jpg",
+      image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop",
+      hoverImage: "https://images.unsplash.com/photo-1445205170230-053b83016050?q=80&w=2071&auto=format&fit=crop",
     },
     {
       id: 5,
-      image: "https://i.pinimg.com/736x/7b/d9/6e/7bd96ec0c83a15e97de3c99a136760ce.jpg",
-      hoverImage: "https://i.pinimg.com/736x/18/53/01/185301eddbcefddc63c97f17a0bf2585.jpg",
+      image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=2070&auto=format&fit=crop",
+      hoverImage: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=2070&auto=format&fit=crop",
     },
     {
       id: 6,
-      image: "https://i.pinimg.com/736x/66/95/5b/66955b434407c1c58f613b69f48e96ea.jpg",
-      hoverImage: "https://i.pinimg.com/736x/3f/ae/c9/3faec9a114f9afc101b85ee5ded0ebf5.jpg",
+      image: "https://i.pinimg.com/736x/cd/1c/d1/cd1cd1119fa79a1735cd75471caa32b9.jpg",
+      hoverImage: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?q=80&w=2070&auto=format&fit=crop",
     }
   ];
 

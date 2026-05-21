@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Package,
@@ -12,9 +12,19 @@ import {
 } from "lucide-react";
 
 const OrderDetailModal = ({ order, onClose, onUpdateStatus }) => {
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [statusNote, setStatusNote] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+  const [statusNote, setStatusNote] = useState("");
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  useEffect(() => {
+    if (order) {
+      setSelectedStatus(order.status || "");
+      setSelectedPaymentStatus(order.paymentStatus || "");
+      setSelectedPaymentMethod(order.paymentMethod || "");
+    }
+  }, [order]);
 
   if (!order) return null;
 
@@ -58,20 +68,30 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }) => {
   };
 
   const availableStatuses = [
-    { value: "pending", label: "Chờ xử lý" },
-    { value: "processing", label: "Đang xử lý" },
-    { value: "shipped", label: "Đã gửi" },
     { value: "delivered", label: "Hoàn thành" },
     { value: "cancelled", label: "Đã hủy" },
   ];
 
-  const handleUpdateStatus = async () => {
-    if (!selectedStatus) return;
+  const paymentStatuses = [
+    { value: "pending", label: "Chờ thanh toán" },
+    { value: "paid", label: "Đã thanh toán" },
+    { value: "failed", label: "Thất bại" },
+    { value: "refunded", label: "Đã hoàn tiền" },
+  ];
 
+  const paymentMethods = [
+    { value: "cod", label: "Tiền mặt" },
+    { value: "bank_transfer", label: "Chuyển khoản" },
+  ];
+
+  const handleUpdateStatus = async () => {
     setIsUpdatingStatus(true);
     try {
-      await onUpdateStatus(order._id, selectedStatus, statusNote);
-      setSelectedStatus("");
+      await onUpdateStatus(order._id, {
+        status: selectedStatus,
+        paymentStatus: selectedPaymentStatus,
+        paymentMethod: selectedPaymentMethod,
+      }, statusNote);
       setStatusNote("");
     } catch (error) {
       console.error("Error updating status:", error);
@@ -390,48 +410,92 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }) => {
                 </div>
               </div>
 
-              {/* Update Status */}
-              {["pending", "processing", "shipped"].includes(order.status) && (
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Cập nhật trạng thái
-                  </h3>
-                  <div className="space-y-3">
+              {/* Update Order Panel */}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 shadow-sm mt-6">
+                <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center">
+                  <Package className="w-5 h-5 mr-2 text-blue-600" />
+                  Cập nhật đơn hàng
+                </h3>
+                <div className="space-y-4 font-sans">
+                  {/* Select 1: Order Status */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      TRẠNG THÁI ĐƠN HÀNG
+                    </label>
                     <select
                       value={selectedStatus}
                       onChange={(e) => setSelectedStatus(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-800 text-sm"
                     >
-                      <option value="">Chọn trạng thái mới</option>
-                      {availableStatuses
-                        .filter((status) => status.value !== order.status)
-                        .map((status) => (
-                          <option key={status.value} value={status.value}>
-                            {status.label}
-                          </option>
-                        ))}
+                      {availableStatuses.map((status) => (
+                        <option key={status.value} value={status.value}>
+                          {status.label}
+                        </option>
+                      ))}
                     </select>
+                  </div>
 
+                  {/* Select 2: Payment Status */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      TRẠNG THÁI THANH TOÁN
+                    </label>
+                    <select
+                      value={selectedPaymentStatus}
+                      onChange={(e) => setSelectedPaymentStatus(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-800 text-sm"
+                    >
+                      {paymentStatuses.map((status) => (
+                        <option key={status.value} value={status.value}>
+                          {status.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Select 3: Payment Method */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      PHƯƠNG THỨC THANH TOÁN
+                    </label>
+                    <select
+                      value={selectedPaymentMethod}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-800 text-sm"
+                    >
+                      {paymentMethods.map((method) => (
+                        <option key={method.value} value={method.value}>
+                          {method.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Note input */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      GHI CHÚ CẬP NHẬT
+                    </label>
                     <textarea
                       value={statusNote}
                       onChange={(e) => setStatusNote(e.target.value)}
-                      placeholder="Ghi chú (tùy chọn)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      rows="3"
+                      placeholder="Nhập ghi chú thay đổi..."
+                      className="w-full px-3 py-2 border border-gray-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      rows="2"
                     />
-
-                    <button
-                      onClick={handleUpdateStatus}
-                      disabled={!selectedStatus || isUpdatingStatus}
-                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isUpdatingStatus
-                        ? "Đang cập nhật..."
-                        : "Cập nhật trạng thái"}
-                    </button>
                   </div>
+
+                  <button
+                    onClick={handleUpdateStatus}
+                    disabled={isUpdatingStatus}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  >
+                    {isUpdatingStatus ? "Đang cập nhật..." : "Lưu thay đổi"}
+                  </button>
                 </div>
-              )}
+              </div>
+
+
 
               {/* Notes */}
               {order.notes && (

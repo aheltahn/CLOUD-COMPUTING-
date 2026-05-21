@@ -27,43 +27,52 @@ const orderItemSchema = new mongoose.Schema({
     image: {
         type: String,
         default: ''
+    },
+    note: {
+        type: String,
+        trim: true
     }
 });
 
 const shippingAddressSchema = new mongoose.Schema({
     fullName: {
         type: String,
-        required: true,
         trim: true
     },
     phone: {
         type: String,
-        required: true,
         trim: true
     },
     address: {
         type: String,
-        required: true,
         trim: true
     },
     city: {
         type: String,
-        required: true,
         trim: true
     },
     district: {
         type: String,
-        required: true,
         trim: true
     },
     ward: {
         type: String,
-        required: true,
         trim: true
     }
 });
 
 const orderSchema = new mongoose.Schema({
+    tenantId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tenant',
+        required: true
+    },
+    tenantInfo: {
+        name: String,
+        email: String,
+        phone: String,
+        address: String
+    },
     orderNumber: {
         type: String,
         required: true,
@@ -71,8 +80,7 @@ const orderSchema = new mongoose.Schema({
     },
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
     },
     customerInfo: {
         name: {
@@ -80,8 +88,7 @@ const orderSchema = new mongoose.Schema({
             required: true
         },
         email: {
-            type: String,
-            required: true
+            type: String
         }
     },
     items: [orderItemSchema],
@@ -112,12 +119,12 @@ const orderSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['cod', 'bank_transfer', 'e_wallet'],
+        enum: ['cod', 'bank_transfer', 'e_wallet', 'payos'],
         default: 'cod'
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'failed', 'refunded'],
+        enum: ['pending', 'processing', 'paid', 'failed', 'refunded'],
         default: 'pending'
     },
     shippingAddress: shippingAddressSchema,

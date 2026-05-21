@@ -1,196 +1,140 @@
-# ECOMMERCE SYSTEM
+Mô tả tổng quan hệ thống
+Hệ thống là một ứng dụng web Point-of-Sale (PoS) hoạt động theo mô hình Software-as-a-Service (SaaS), cho phép nhiều cửa hàng sử dụng chung một nền tảng để quản lý hoạt động bán hàng và vận hành cửa hàng.
+Hệ thống hỗ trợ kiến trúc multi-tenant, trong đó mỗi cửa hàng được xem là một tenant riêng biệt. Dữ liệu của từng tenant được tách biệt và bảo mật với các tenant khác thông qua cơ chế tenant isolation.
+Ứng dụng được xây dựng nhằm hỗ trợ các cửa hàng bán lẻ/quần áo quản lý:
+bán hàng trực tiếp tại quầy (PoS)
+sản phẩm
+đơn hàng
+thanh toán
+nhân viên
+khuyến mãi
+báo cáo doanh thu
+Ngoài ra, hệ thống còn hỗ trợ gửi email hóa đơn cho khách hàng sau khi thanh toán, hỗ trợ thanh toán chuyển khoản
 
-## 📌 Mục tiêu
+Các vai trò trong hệ thống
+1. Super Admin (super_admin)
+Là quản trị viên của toàn bộ nền tảng SaaS.
 
-Hệ thống **E-Commerce** là một nền tảng trực tuyến cho phép cửa hàng bán sản phẩm và khách hàng thực hiện mua sắm trực tuyến. Hệ thống hỗ trợ:
+2. Quản trị viên cửa hàng (tenant_admin)
+Là chủ sở hữu của một cửa hàng cụ thể trên hệ thống.
 
-- Quản lý sản phẩm, đơn hàng, thanh toán, khách hàng và dịch vụ hậu mãi cho cửa hàng.
-- Tìm kiếm, mua sắm, theo dõi đơn hàng và quản lý tài khoản cho khách hàng.
-- Điều hành toàn bộ hệ thống, đảm bảo vận hành ổn định và an toàn cho **Admin**.
+3. Nhân viên cửa hàng (tenant_staff)
+Là nhân viên được quản trị viên cửa hàng cấp tài khoản truy cập hệ thống.
 
----
+Công nghệ sử dụng
+Frontend
+React
+Tailwind CSS
+JavaScript
+HTML/CSS
 
-## 🧭 Phạm vi hệ thống
+Backend
+Node.js
+Express
+RESTful API
+JWT Authentication
 
-Hệ thống bao gồm các phân hệ chính:
+Database
+MongoDB
+Multi-tenant database design using tenantId
 
-- **Admin**: Quản lý toàn bộ hoạt động hệ thống.
-- **Customer**: Trải nghiệm mua sắm và theo dõi đơn hàng.
+Cloud & Deployment
+Amazon Web Services EC2
+Amazon Web Services S3
+Amazon Web Services SES
+Amazon Web Services IAM
+Amazon Web Services CloudWatch
 
----
+CÔNG NGHỆ HỖ TRỢ
+Email Service (Mail hóa đơn, mail OPT)
+Nodemailer
+AWS SES SMTP integration
+THANH TOÁN CHUYỂN KHOẢN
+PayOS
+Ngrok (hỗ trợ)
 
-## 👥 Vai trò và chức năng
+## Vai trò và Chức năng
 
-### 1. Admin - Quản trị hệ thống
-
-| Mã chức năng | Chức năng                 | Mô tả                                                                                                                                                                                | Tiến độ       |
-| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
-| AD-ADM01     | Quản lý sản phẩm          | Kiểm duyệt, cập nhật trạng thái (available, unavailable, out_of_stock), quản lý kho (inventory), giao diện admin hoàn thành, routing và bảo vệ trang admin, tài khoản admin mặc định, Backend pagination, Real-time inventory management | ✅ Hoàn thành |
-| AD-ADM02     | Quản lý đơn hàng          | Xử lý và cập nhật đơn hàng, Order model với status tracking, Inventory integration, Payment status management, Customer order history, Order statistics | ✅ Hoàn thành |
-| AD-ADM03     | Quản lý khách hàng        | Chỉnh sửa, xóa thông tin khách hàng                                                                                                                                                  | ❌ Chưa làm   |
-| AD-ADM04     | Quản lý thanh toán        | Theo dõi các giao dịch                                                                                                                                                               | ❌ Chưa làm   |
-| AD-ADM05     | Quản lý thông báo         | Gửi thông báo đến khách hàng                                                                                                                                                         | ❌ Chưa làm   |
-| AD-ADM06     | Quản lý đánh giá sản phẩm | Xem và phản hồi đánh giá                                                                                                                                                             | ❌ Chưa làm   |
-| AD-ADM07     | Quản lý khuyến mãi        | Tạo/chỉnh sửa/xóa khuyến mãi                                                                                                                                                         | ❌ Chưa làm   |
-| AD-ADM08     | Quản lý phân quyền        | Phân quyền cho nhân viên nội bộ                                                                                                                                                      | ❌ Chưa làm   |
-| AD-ADM19     | Quản lý tài chính         | Theo dõi doanh thu và chi phí hệ thống                                                                                                                                               | ❌ Chưa làm   |
-
-> ⚠️ Điều kiện: Tất cả chức năng yêu cầu Admin đăng nhập.
-
----
-
-### 2. Customer - Khách hàng
-
-| Mã chức năng | Chức năng            | Mô tả                                                | Tiến độ       |
-| ------------ | -------------------- | ---------------------------------------------------- | ------------- |
-| CTM-REG01    | Đăng ký tài khoản    | Tạo tài khoản mới, email verification                | ✅ Hoàn thành |
-| CTM-LOG01    | Đăng nhập            | Truy cập hệ thống, forgot password, reset password   | ✅ Hoàn thành |
-| CTM-PRD01    | Tìm kiếm sản phẩm    | Product listing với pagination, Search & filter functionality, Product cards với inventory display, Smart variants display | ✅ Hoàn thành |
-| CTM-PRD02    | Xem chi tiết sản phẩm | Product detail page với variants selection, Image display, Add to cart, Share functionality | ✅ Hoàn thành |
-| CTM-ORD01    | Đặt hàng             | Shopping cart với inventory validation, Real-time stock checking, Checkout process | ✅ Hoàn thành |
-| CTM-ORD02    | Xem lịch sử đặt hàng | Order history với status tracking, Order details view, Cancel order functionality | ✅ Hoàn thành |
-| CTM-RVW01    | Đánh giá sản phẩm    | Gửi nhận xét sau khi mua                             | ❌ Chưa làm   |
-| CTM-ACC01    | Quản lý tài khoản    | Dashboard với user info, Profile management           | ✅ Hoàn thành |
-| CTM-SPT01    | Yêu cầu hỗ trợ       | Gửi câu hỏi/hỗ trợ kỹ thuật                          | ❌ Chưa làm   |
-| CTM-PRM01    | Xem khuyến mãi       | Xem chương trình khuyến mãi                          | ❌ Chưa làm   |
-| CTM-SHP01    | Theo dõi vận chuyển  | Cập nhật trạng thái giao hàng                        | ❌ Chưa làm   |
-| CTM-FIN01    | Quản lý thanh toán   | Xem lịch sử giao dịch của mình                       | ❌ Chưa làm   |
-| CTM-WIS01    | Danh sách yêu thích  | Lưu sản phẩm yêu thích, Thêm/xóa khỏi wishlist, Wishlist management với real-time sync | ✅ Hoàn thành |
-| CTM-CMP01    | So sánh sản phẩm     | So sánh các sản phẩm về giá, tính năng, đánh giá...  | ❌ Chưa làm   |
-| CTM-NOT01    | Thông báo đẩy        | Nhận thông báo về đơn hàng, khuyến mãi, cập nhật mới | ❌ Chưa làm   |
-
-> Ghi chú:
->
-> - ✅ Hoàn thành
-> - ⏳ Đang phát triển
-> - ❌ Chưa làm
-
----
-
-## 🎨 Giao diện
-
-### Admin Pages
-
-- **Product Management Page** – Quản lý sản phẩm ✅
-- **Order Management Page** – Xử lý đơn hàng ✅
-- **Customer Management Page** – Danh sách khách hàng ❌
-- **Payment Management Page** – Quản lý giao dịch ❌
-- **Notification Page** – Gửi thông báo ❌
-- **Review Management Page** – Quản lý đánh giá ❌
-- **Promotion Page** – Quản lý chương trình khuyến mãi ❌
-- **Access Control Page** – Phân quyền người dùng ❌
-- **Financial Management Page** – Quản lý tài chính ❌
-
-### Customer Pages
-
-- **Registration / Login Pages** – Đăng ký, đăng nhập ✅
-- **Landing Page** – Trang chủ cho khách chưa đăng nhập ✅
-- **Home Page** – Trang chủ cho khách đã đăng nhập ✅
-- **Product Listing Page** – Danh sách sản phẩm với search & filter ✅
-- **Product Detail Page** – Chi tiết sản phẩm với variants selection ✅
-- **Shopping Cart Page** – Giỏ hàng với quantity management ✅
-- **Checkout Page** – Thanh toán ✅
-- **Order Success Page** – Xác nhận đặt hàng thành công ✅
-- **Order History Page** – Lịch sử đơn hàng ✅
-- **Wishlist Page** – Danh sách yêu thích ✅
-- **Dashboard Page** – Trang tổng quan tài khoản ✅
-- **Review Page** – Đánh giá sản phẩm ❌
-- **Account Settings Page** – Quản lý tài khoản ❌
-- **Support Page** – Gửi yêu cầu hỗ trợ ❌
-- **Promotion Page** – Xem khuyến mãi ❌
-- **Shipping Tracking Page** – Theo dõi vận chuyển ❌
-- **Payment History Page** – Quản lý giao dịch ❌
-- **Product Comparison Page** – So sánh sản phẩm ❌
-- **Notification Center Page** – Trung tâm thông báo ❌
+| Vai trò | Chức năng | Mô tả |
+| :--- | :--- | :--- |
+| **Super Admin** (`super_admin`) | Quản lý cửa hàng (Tenant) | Xem danh sách cửa hàng, khóa/mở khóa cửa hàng |
+| | Quản lý người dùng | Xem danh sách người dùng, khóa/mở khóa tài khoản người dùng |
+| **Quản trị viên cửa hàng** (`tenant_admin`) | Đăng ký cửa hàng | Đăng ký tài khoản cửa hàng và xác thực email |
+| | Bán hàng PoS | Tạo đơn hàng trực tiếp tại quầy, chọn sản phẩm, thay đổi số lượng sản phẩm trong giỏ hàng, tính tạm tính/tổng tiền, lưu đơn tạm, tìm kiếm sản phẩm, áp dụng mã giảm giá, thanh toán bằng tiền mặt hoặc chuyển khoản, nhập thông tin khách hàng, ghi chú đơn hàng, gửi email hóa đơn cho khách |
+| | Quản lý nhân viên | Thêm, xóa tài khoản nhân viên cửa hàng |
+| | Quản lý sản phẩm | Thêm, sửa, xóa sản phẩm, tìm kiếm và lọc sản phẩm |
+| | Quản lý đơn hàng | Xem thống kê đơn hàng, tình trạng đơn hàng, chi tiết đơn hàng, tìm kiếm/lọc đơn hàng, cập nhật trạng thái đơn hàng và trạng thái thanh toán |
+| | Quản lý thanh toán | Xem báo cáo doanh thu và thanh toán của cửa hàng, xuất file Excel |
+| | Quản lý khuyến mãi | Thêm, sửa, xóa mã khuyến mãi |
+| **Nhân viên cửa hàng** (`tenant_staff`) | Nhận tài khoản từ admin | Được quản trị viên cửa hàng cấp tài khoản truy cập hệ thống |
+| | Bán hàng PoS | Tạo đơn hàng trực tiếp tại quầy, chọn sản phẩm, thay đổi số lượng sản phẩm trong giỏ hàng, tính tạm tính/tổng tiền, lưu đơn tạm, tìm kiếm sản phẩm, áp dụng mã giảm giá, thanh toán bằng tiền mặt hoặc chuyển khoản, nhập thông tin khách hàng, ghi chú đơn hàng, gửi email hóa đơn cho khách |
+| | Quản lý sản phẩm | Sửa sản phẩm, tìm kiếm và lọc sản phẩm |
+| | Quản lý đơn hàng | Xem thống kê đơn hàng, tình trạng đơn hàng, chi tiết đơn hàng, tìm kiếm/lọc đơn hàng, cập nhật trạng thái đơn hàng và trạng thái thanh toán |
+| | Quản lý khuyến mãi | Thêm, sửa, xóa mã khuyến mãi |
 
 ---
 
-## 🏗️ Kiến trúc hệ thống
+## 🚀 Hướng dẫn Cài đặt và Khởi chạy Dự án
 
-### Backend (Node.js + Express + MongoDB)
-- **🔐 Authentication**: JWT tokens, email verification, password reset ✅
-- **👤 User Management**: Role-based access (user/admin), default admin creation ✅
-- **📦 Product Management**: CRUD operations với file upload, pagination, inventory management, variants support ✅
-- **📋 Order Management**: Order processing, status tracking, inventory integration ✅
-- **💝 Wishlist Management**: Add/remove products, sync với database ✅
-- **🗃️ Database**: MongoDB với Mongoose ODM ✅
-- **🛡️ Security**: bcrypt password hashing, HTTP-only cookies, CORS ✅
-- **📁 File Management**: Image upload với multiple location support, normalized paths ✅
+Sau khi clone hoặc tải dự án từ GitHub về máy tính, bạn thực hiện các bước sau để thiết lập và chạy hệ thống:
 
-### Frontend (React + Vite + Tailwind CSS)
-- **🎨 UI Framework**: React với Tailwind CSS ✅
-- **🔄 State Management**: Zustand cho authentication, cart, và wishlist ✅
-- **🛣️ Routing**: React Router với protected routes ✅
-- **🎭 Animations**: Framer Motion ✅ 
-- **📱 Responsive Design**: Mobile-first approach ✅
-- **🔔 Notifications**: React Hot Toast ✅
-- **🖼️ Image Handling**: Smart image URL processing, fallback support ✅
-- **🎯 Smart UI Components**: Variants selection, cart management, wishlist integration ✅
+### 1. Cài đặt các gói phụ thuộc (Dependencies)
 
----
+Mở Terminal/CMD tại thư mục gốc của dự án (`auth/`) và cài đặt các thư viện cần thiết:
 
-## 🚀 Tính năng đã hoàn thành
+* **Cài đặt thư viện chính cho Backend (tại thư mục gốc):**
+  ```bash
+  npm install
+  ```
 
-### 🛍️ Shopping Experience
-- **Product Discovery**: Advanced search, filtering, pagination
-- **Product Details**: Smart variants selection (color/size), image gallery
-- **Shopping Cart**: Real-time inventory validation, quantity management
-- **Wishlist**: Add/remove products, cross-component sync
-- **Checkout Process**: Complete order flow with inventory reduction
+* **Cài đặt thư viện cho Frontend:**
+  ```bash
+  cd frontend
+  npm install
+  ```
 
-### 🎨 User Interface
-- **Responsive Design**: Mobile-first approach, adaptive layouts
-- **Smart Components**: ProductCard, ProductDetailPage, WishlistPage
-- **Image Management**: Fallback handling, multiple upload locations
-- **User Feedback**: Toast notifications, loading states, error handling
-
-### 🔧 Technical Features
-- **State Management**: Zustand stores for auth, cart, wishlist
-- **API Integration**: RESTful APIs với proper error handling
-- **Database Design**: Optimized schemas với relationships
-- **Authentication Flow**: Complete auth system với role-based access
+* **Cài đặt các module phụ trợ của Backend:**
+  ```bash
+  cd ../backend
+  npm install
+  ```
 
 ---
 
-## 📊 Tiến độ tổng quan
+### 2. Cấu hình biến môi trường (Environment Variables)
 
-### Hoàn thành: **70%** 
-- ✅ **Authentication & Authorization** (100%)
-- ✅ **Product Management** (100%)
-- ✅ **Shopping Cart & Checkout** (100%)
-- ✅ **Order Management** (100%)
-- ✅ **Wishlist System** (100%)
-- ✅ **User Interface & Experience** (90%)
-
-### Đang phát triển: **0%**
-- Tất cả features chính đã hoàn thành
-
-### Chưa làm: **30%**
-- ❌ Review & Rating System
-- ❌ Promotion & Discount System
-- ❌ Customer Support System
-- ❌ Advanced Analytics & Reporting
-- ❌ Notification System
-- ❌ Payment Gateway Integration
+1. Tại thư mục gốc (`auth/`), sao chép file `.env.example` để tạo file `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Mở file `.env` vừa tạo và điền các thông tin cấu hình tương ứng (thông tin file .env trong doc)
+   * **Cấu hình DB & Port:**
+     * `MONGO_URI`: Đường dẫn kết nối MongoDB Atlas hoặc MongoDB Local.
+     * `PORT`: Cổng chạy Server Backend (mặc định là `4173`).
+     * `JWT_SECRET`: Khóa bảo mật để tạo JWT Token đăng nhập.
+   * **Cấu hình gửi Mail:**
+     * `GMAIL_USER`: Email gửi thông báo hóa đơn và mã OTP (Ví dụ: `gmail_cua_ban@gmail.com`).
+     * `GMAIL_PASS`: Mật khẩu ứng dụng (App Password) của Gmail đó.
+   * **Cấu hình PayOS (Cổng thanh toán):**
+     * `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY`: Các khóa API lấy từ tài khoản PayOS của bạn.
+   * **Cấu hình Client:**
+     * `CLIENT_URL`: Địa chỉ chạy Frontend (Ví dụ: `http://localhost:5173`).
 
 ---
 
-## ✅ Điều kiện hoạt động
+### 3. Khởi chạy ứng dụng
 
-- **Admin** phải đăng nhập để thực hiện các chức năng quản trị.
-- **Customer** phải có tài khoản để đặt hàng, quản lý wishlist, hoặc theo dõi đơn hàng.
-- **Responsive Design** hoạt động trên tất cả thiết bị.
+* **Chạy Server Backend:**
+  Mở terminal tại thư mục gốc (`auth/`) và chạy lệnh:
+  ```bash
+  npm run dev
+  ```
 
----
+* **Chạy Frontend (React + Vite):**
+  Mở một cửa sổ terminal mới, di chuyển vào thư mục `frontend/` và chạy lệnh:
+  ```bash
+  cd frontend
+  npm run dev
+  ```
 
-## 📌 Ghi chú triển khai
-
-- Backend sử dụng mô hình MVC với middleware authentication.
-- Frontend sử dụng React, Tailwind, Zustand với component-based architecture.
-- Database: MongoDB với Mongoose ODM và optimized schemas.
-- Real-time inventory management system với stock validation.
-- Comprehensive order processing workflow với status tracking.
-- Smart image handling với multiple fallback mechanisms.
-- Cross-component state synchronization với Zustand stores.
-
----
+Sau khi khởi chạy thành công cả Backend và Frontend, hãy truy cập vào địa chỉ `http://localhost:5173` trên trình duyệt để sử dụng ứng dụng.

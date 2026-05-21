@@ -28,6 +28,64 @@ export const VERIFICATION_EMAIL_TEMPLATE = `
 </html>
 `;
 
+export const INVOICE_EMAIL_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hóa đơn điện tử</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(to right, #4CAF50, #45a049); padding: 20px; text-align: center;">
+        <h1 style="color: white; margin: 0;">HÓA ĐƠN ĐIỆN TỬ</h1>
+        <p style="color: white; margin: 5px 0 0 0;">{storeName}</p>
+    </div>
+    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <p>Chào <strong>{customerName}</strong>,</p>
+        <p>Cảm ơn bạn đã mua hàng tại <strong>{storeName}</strong>. Đây là thông tin hóa đơn cho đơn hàng của bạn:</p>
+
+        <div style="margin: 20px 0; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+            <p><strong>Mã giao dịch:</strong> {transactionId}</p>
+            <p><strong>Ngày đặt hàng:</strong> {orderDate}</p>
+            <p><strong>Phương thức thanh toán:</strong> {paymentMethod}</p>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+                <tr style="border-bottom: 1px solid #ddd; text-align: left;">
+                    <th style="padding: 10px 0;">Sản phẩm</th>
+                    <th style="padding: 10px 0; text-align: center;">SL</th>
+                    <th style="padding: 10px 0; text-align: right;">Giá</th>
+                </tr>
+            </thead>
+            <tbody>
+                {orderItems}
+            </tbody>
+        </table>
+
+        <div style="margin-top: 20px; text-align: right;">
+            <p><strong>Tạm tính:</strong> {subtotal}đ</p>
+            <p><strong>Phí vận chuyển:</strong> {shippingFee}đ</p>
+            <p><strong>Giảm giá:</strong> -{discountAmount}đ</p>
+            <h2 style="color: #4CAF50;">Tổng cộng: {totalAmount}đ</h2>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p><strong>Thông tin cửa hàng:</strong></p>
+            <p>{storeAddress}</p>
+            <p>Điện thoại: {storePhone}</p>
+        </div>
+
+        <p style="margin-top: 30px; text-align: center; color: #888;">Cảm ơn quý khách và hẹn gặp lại!</p>
+    </div>
+    <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
+        <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+    </div>
+</body>
+</html>
+`;
+
 export const PASSWORD_RESET_SUCCESS_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">

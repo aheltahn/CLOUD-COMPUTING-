@@ -6,25 +6,25 @@ import {
     processRefund,
     getPaymentStats,
     updatePaymentStatus,
-    exportPayments
+    exportPayments,
+    handlePayOSWebhook,
+    verifyPayOSPayment
 } from '../controllers/payment.controller.js';
+
+import { verifyRole } from '../middleware/verifyTenant.js';
 
 const router = express.Router();
 
-// Middleware to check admin role
-const checkAdmin = (req, res, next) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({
-            success: false,
-            message: 'Chỉ admin mới có quyền truy cập'
-        });
-    }
-    next();
-};
+// Public routes
+router.post('/webhook/payos', handlePayOSWebhook);
 
-// Admin routes - all require authentication and admin role
+// Admin routes - all require authentication and admin/staff roles
 router.use(verifyToken);
-router.use(checkAdmin);
+
+// Verify PayOS status (Admin/Staff)
+router.post('/verify-payos', verifyRole(['admin', 'tenant_admin', 'tenant_staff', 'super_admin']), verifyPayOSPayment);
+
+router.use(verifyRole(['tenant_admin', 'admin']));
 
 // Get all payments with filters and pagination
 router.get('/', getPayments);

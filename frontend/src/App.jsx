@@ -1,31 +1,28 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 
 import SignUpPage from "./pages/SignUpPage";
+import RegisterStorePage from "./pages/RegisterStorePage";
 import LoginPage from "./pages/LoginPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
-import DashboardPage from "./pages/DashboardPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProductManagementPage from "./pages/admin/ProductManagementPage";
 import OrderManagementPage from "./pages/admin/OrderManagementPage";
-import ProductListingPage from "./pages/user/ProductListingPage";
-import OrderHistory from "./pages/user/OrderHistory";
-import CartPage from "./pages/user/CartPage";
-import CheckoutPage from "./pages/user/CheckoutPage";
-import OrderSuccessPage from "./pages/user/OrderSuccessPage";
+import POSPage from "./pages/admin/POSPage";
+import TenantManagementPage from "./pages/superadmin/TenantManagementPage";
+import GlobalUserManagementPage from "./pages/superadmin/GlobalUserManagementPage";
+import StaffManagementPage from "./pages/admin/StaffManagementPage";
 import LandingPage from "./pages/LandingPage";
-import HomePage from "./pages/HomePage";
-import ProductDetailPage from "./pages/user/ProductDetailPage";
 
 import LoadingSpinner from "./components/LoadingSpinner";
 
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./store/authStore";
 import { useEffect } from "react";
-import WishlistPage from "./pages/user/WishlistPage";
 import CustomerManagementPage from "./pages/admin/CustomerManagementPage";
 import PaymentManagementPage from "./pages/admin/PaymentManagementPage";
+import DiscountManagementPage from "./pages/admin/DiscountManagementPage";
 
 // protect routes that require authentication
 const ProtectedRoute = ({ children }) => {
@@ -54,8 +51,28 @@ const AdminProtectedRoute = ({ children }) => {
     return <Navigate to="/verify-email" replace />;
   }
 
-  if (user.role !== "admin") {
-    return <Navigate to="/products" replace />; // 👈 UPDATE: redirect to products instead of "/"
+  // Cho phép super_admin, tenant_admin, hoặc tenant_staff vào trang admin
+  if (!["admin", "super_admin", "tenant_admin", "tenant_staff"].includes(user.role)) {
+    return <Navigate to="/login" replace />; 
+  }
+
+  return children;
+};
+
+// protect super admin routes
+const SuperAdminProtectedRoute = ({ children }) => {
+  const { isAuthenticated, user } = useAuthStore();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!user.isVerified) {
+    return <Navigate to="/verify-email" replace />;
+  }
+
+  if (user.role !== "super_admin") {
+    return <Navigate to="/admin/products" replace />;
   }
 
   return children;
@@ -67,11 +84,15 @@ const RedirectAuthenticatedUser = ({ children }) => {
 
   if (isAuthenticated && user.isVerified) {
     // Redirect based on user role
-    if (user.role === "admin") {
+    if (user.role === "super_admin") {
+      return <Navigate to="/super-admin/tenants" replace />;
+    } else if (user.role === "tenant_staff") {
+      return <Navigate to="/admin/pos" replace />;
+    } else if (user.role === "admin" || user.role === "tenant_admin") {
       return <Navigate to="/admin/products" replace />;
     } else {
-      // 👈 UPDATE: User gets redirected to products page (main shopping page)
-      return <Navigate to="/products" replace />;
+      // Default redirect should be to login if role is unrecognized
+      return <Navigate to="/login" replace />;
     }
   }
 
@@ -79,19 +100,36 @@ const RedirectAuthenticatedUser = ({ children }) => {
 };
 
 // Auth Layout with floating shapes and centering
-const AuthLayout = ({ children }) => (
-  <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
-  >
-    <div
-    className="absolute inset-0 bg-cover bg-center"
-    style={{ backgroundImage: "url('https://i.pinimg.com/1200x/09/b6/cd/09b6cdda824eccb31af435090a0e0132.jpg')" }}
-  ></div>
-   {/* Overlay xanh lá đậm với opacity 40% */}
-   <div className="absolute inset-0 bg-green-900 opacity-20"></div>
+const AuthLayout = ({ children }) => {
+  const location = useLocation();
 
-    {children}
-  </div>
-);
+  // Custom backgrounds based on path
+  let bgImage = "https://i.pinimg.com/736x/b6/c9/87/b6c9876628bae28103a09af682b045c2.jpg"; // default fallback
+
+  if (location.pathname === "/login") {
+    // Elegant high-end fashion boutique shop interior
+    bgImage = "https://i.pinimg.com/736x/b6/c9/87/b6c9876628bae28103a09af682b045c2.jpg";
+  } else if (location.pathname === "/register-store") {
+    // Beautiful storefront/boutique with plants and clean glass window
+    bgImage = "https://i.pinimg.com/736x/b6/c9/87/b6c9876628bae28103a09af682b045c2.jpg";
+  } else if (location.pathname === "/signup") {
+    // Cozy fashion wardrobe / boutique hanger rack
+    bgImage = "https://i.pinimg.com/736x/b6/c9/87/b6c9876628bae28103a09af682b045c2.jpg";
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center transition-all duration-700 ease-in-out"
+        style={{ backgroundImage: `url('${bgImage}')` }}
+      ></div>
+      {/* Dark overlay for better readability of text and fields */}
+      <div className="absolute inset-0 bg-black opacity-45"></div>
+
+      {children}
+    </div>
+  );
+};
 
 function App() {
   const { isCheckingAuth, checkAuth } = useAuthStore();
@@ -115,84 +153,6 @@ function App() {
           }
         />
 
-        {/* 👈 NEW: Home Page for Authenticated Users */}
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <HomePage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 👈 UPDATE: Dashboard now accessible via user menu */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* User Routes - Clean layout without floating shapes */}
-        <Route
-          path="/products"
-          element={
-            <ProtectedRoute>
-              <ProductListingPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/products/:id"
-          element={
-            <ProtectedRoute>
-              <ProductDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cart"
-          element={
-            <ProtectedRoute>
-              <CartPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/checkout"
-          element={
-            <ProtectedRoute>
-              <CheckoutPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/order-success/:orderId"
-          element={
-            <ProtectedRoute>
-              <OrderSuccessPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/orders"
-          element={
-            <ProtectedRoute>
-              <OrderHistory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/wishlist"
-          element={
-            <ProtectedRoute>
-              <WishlistPage />
-            </ProtectedRoute>
-          }
-        />
-
         {/* Auth Routes - With floating shapes and centering */}
         <Route
           path="/signup"
@@ -200,6 +160,16 @@ function App() {
             <RedirectAuthenticatedUser>
               <AuthLayout>
                 <SignUpPage />
+              </AuthLayout>
+            </RedirectAuthenticatedUser>
+          }
+        />
+        <Route
+          path="/register-store"
+          element={
+            <RedirectAuthenticatedUser>
+              <AuthLayout>
+                <RegisterStorePage />
               </AuthLayout>
             </RedirectAuthenticatedUser>
           }
@@ -243,6 +213,24 @@ function App() {
           }
         />
 
+        {/* Super Admin routes */}
+        <Route
+          path="/super-admin/tenants"
+          element={
+            <SuperAdminProtectedRoute>
+              <TenantManagementPage />
+            </SuperAdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/super-admin/users"
+          element={
+            <SuperAdminProtectedRoute>
+              <GlobalUserManagementPage />
+            </SuperAdminProtectedRoute>
+          }
+        />
+
         {/* Admin routes - Clean layout */}
         <Route
           path="/admin/products"
@@ -261,6 +249,14 @@ function App() {
           }
         />
         <Route
+          path="/admin/pos"
+          element={
+            <AdminProtectedRoute>
+              <POSPage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/customers"
           element={
             <AdminProtectedRoute>
@@ -271,9 +267,25 @@ function App() {
         <Route
           path="/admin/payments"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminProtectedRoute>
               <PaymentManagementPage />
-            </ProtectedRoute>
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/staffs"
+          element={
+            <AdminProtectedRoute>
+              <StaffManagementPage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/discounts"
+          element={
+            <AdminProtectedRoute>
+              <DiscountManagementPage />
+            </AdminProtectedRoute>
           }
         />
 

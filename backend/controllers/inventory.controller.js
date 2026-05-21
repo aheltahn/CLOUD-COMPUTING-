@@ -1,4 +1,7 @@
-import Product from '../models/product.model.js';
+
+
+  
+  import Product from '../models/product.model.js';
 
 // Giảm inventory khi có đơn hàng
 export const reduceInventory = async (productId, quantity) => {

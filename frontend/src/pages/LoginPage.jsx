@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Loader } from "lucide-react";
+import { Mail, Lock, Loader,ShoppingBag } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../components/Input";
 import { useAuthStore } from "../store/authStore";
@@ -17,10 +17,14 @@ const LoginPage = () => {
     try {
       const response = await login(email, password);
       // Xử lý routing dựa trên role của user
-      if (response.user.role === "admin") {
+      if (response.user.role === "super_admin") {
+        navigate("/super-admin/tenants");
+      } else if (response.user.role === "tenant_staff") {
+        navigate("/admin/pos");
+      } else if (["admin", "tenant_admin"].includes(response.user.role)) {
         navigate("/admin/products");
       } else {
-        // User login → redirect to products page (not dashboard)
+        // User login → redirect to home page
         navigate("/home");
       }
     } catch (error) {
@@ -29,6 +33,7 @@ const LoginPage = () => {
   };
 
   return (
+    
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -36,9 +41,21 @@ const LoginPage = () => {
       className="max-w-md w-full bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden"
     >
       <div className="p-8">
-        <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-green-400 to-emerald-500 text-transparent bg-clip-text">
-          Welcome Back
-        </h2>
+      <div className="flex flex-col items-center mb-4">
+  {/* Icon + StyleZone */}
+  <div className="flex items-center justify-center mb-4">
+  <Link to="/landingpage" className="flex items-center space-x-2">
+    <ShoppingBag className="w-8 h-8 text-green-200" />
+    <span className="text-2xl font-bold text-white">StyleZone</span>
+  </Link>
+</div>
+
+  {/* Welcome Back */}
+  <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-green-400 to-emerald-500 text-transparent bg-clip-text">
+    Welcome Back
+  </h2>
+</div>
+
 
         <form onSubmit={handleLogin}>
           <Input

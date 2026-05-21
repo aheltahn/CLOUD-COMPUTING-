@@ -10,6 +10,7 @@ import {
     getOrderStats
 } from '../controllers/order.controller.js';
 import { verifyToken } from '../middleware/verifyToken.js';
+import { verifyRole } from '../middleware/verifyTenant.js';
 
 const router = express.Router();
 
@@ -21,11 +22,12 @@ router.post('/:id/cancel', verifyToken, cancelOrder); // Hủy đơn hàng (cust
 // Shared routes (customer can view their own orders, admin can view all)
 router.get('/:id', verifyToken, getOrderById); // Lấy chi tiết đơn hàng
 
-// Admin routes (requires admin role)
-// Note: You might want to add admin role middleware here
-router.get('/', verifyToken, getOrders); // Lấy tất cả đơn hàng (admin)
-router.put('/:id/status', verifyToken, updateOrderStatus); // Cập nhật trạng thái đơn hàng (admin)
-router.put('/:id/payment', verifyToken, updatePaymentStatus); // Cập nhật trạng thái thanh toán (admin)
-router.get('/admin/stats', verifyToken, getOrderStats); // Thống kê đơn hàng (admin)
+// Admin routes (requires appropriate roles)
+router.get('/', verifyToken, verifyRole('admin', 'tenant_admin', 'tenant_staff'), getOrders); // Lấy tất cả đơn hàng
+router.put('/:id/status', verifyToken, verifyRole('admin', 'tenant_admin', 'tenant_staff'), updateOrderStatus); // Cập nhật trạng thái đơn hàng
+router.put('/:id/payment', verifyToken, verifyRole('admin', 'tenant_admin', 'tenant_staff'), updatePaymentStatus); // Cập nhật trạng thái thanh toán
+
+// Revenue Reports - Restricted to admins only
+router.get('/admin/stats', verifyToken, verifyRole('admin', 'tenant_admin'), getOrderStats); // Thống kê đơn hàng (admin only)
 
 export default router;

@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema({
+    tenantId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tenant',
+        required: true
+    },
     orderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Order',
@@ -24,7 +29,7 @@ const paymentSchema = new mongoose.Schema({
     paymentMethod: {
         type: String,
         required: true,
-        enum: ['credit_card', 'debit_card', 'e_wallet', 'bank_transfer', 'cod']
+        enum: ['credit_card', 'debit_card', 'e_wallet', 'bank_transfer', 'cod', 'payos']
     },
     transactionId: {
         type: String,
@@ -73,7 +78,9 @@ const paymentSchema = new mongoose.Schema({
         // Thông tin bổ sung
         ipAddress: String,
         userAgent: String,
-        deviceInfo: Object
+        deviceInfo: Object,
+        payosOrderCode: Number,
+        paymentLinkId: String
     },
     failureReason: {
         type: String,
@@ -161,16 +168,19 @@ paymentSchema.statics.getStatsByDateRange = async function (startDate, endDate) 
     ]);
 };
 
-paymentSchema.statics.getDailyRevenue = async function (days = 30) {
+paymentSchema.statics.getDailyRevenue = async function (days = 30, tenantId = null) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
+    const matchQuery = {
+        createdAt: { $gte: startDate },
+        status: { $in: ['completed', 'partially_refunded'] }
+    };
+    if (tenantId) matchQuery.tenantId = tenantId;
+
     return this.aggregate([
         {
-            $match: {
-                createdAt: { $gte: startDate },
-                status: { $in: ['completed', 'partially_refunded'] }
-            }
+            $match: matchQuery
         },
         {
             $group: {

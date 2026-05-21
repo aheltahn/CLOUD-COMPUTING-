@@ -6,7 +6,7 @@ const statusMap = {
   out_of_stock: 'Hết hàng',
 };
 
-const ProductTable = ({ products, onEdit, onDelete, onUploadImage }) => {
+const ProductTable = ({ products, onEdit, onDelete, onUploadImage, userRole }) => {
   return (
     <div className="overflow-x-auto w-full">
       <table className="min-w-full bg-white border rounded shadow text-sm md:text-base">
@@ -14,6 +14,7 @@ const ProductTable = ({ products, onEdit, onDelete, onUploadImage }) => {
           <tr>
             <th className="px-2 md:px-4 py-2 border">Ảnh</th>
             <th className="px-2 md:px-4 py-2 border">Tên sản phẩm</th>
+            <th className="px-2 md:px-4 py-2 border hidden sm:table-cell">Danh mục</th>
             <th className="px-2 md:px-4 py-2 border hidden sm:table-cell">
               Giá
             </th>
@@ -46,6 +47,11 @@ const ProductTable = ({ products, onEdit, onDelete, onUploadImage }) => {
                   {product.productName}
                 </td>
                 <td className="px-2 md:px-4 py-2 border hidden sm:table-cell">
+                  <span className="bg-gray-100 text-gray-800 text-xs font-semibold px-2 py-1 rounded">
+                    {product.category || 'Khác'}
+                  </span>
+                </td>
+                <td className="px-2 md:px-4 py-2 border hidden sm:table-cell">
                   {product.price?.toLocaleString()}đ
                 </td>
                 <td className="px-2 md:px-4 py-2 border hidden sm:table-cell">
@@ -67,18 +73,20 @@ const ProductTable = ({ products, onEdit, onDelete, onUploadImage }) => {
                   >
                     Upload ảnh
                   </button>
-                  <button
-                    className="bg-red-500 text-white px-2 py-1 rounded"
-                    onClick={() => onDelete(product)}
-                  >
-                    Xóa
-                  </button>
+                  {userRole !== 'tenant_staff' && (
+                    <button
+                      className="bg-red-500 text-white px-2 py-1 rounded"
+                      onClick={() => onDelete(product)}
+                    >
+                      Xóa
+                    </button>
+                  )}
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={6} className="text-center py-4">
+              <td colSpan={7} className="text-center py-4">
                 Không có sản phẩm nào
               </td>
             </tr>

@@ -1,7 +1,7 @@
 import React from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { Package, FileText, ShoppingBag, Users, CreditCard } from "lucide-react";
+import { Package, FileText, ShoppingBag, Users, CreditCard, LayoutGrid, Ticket } from "lucide-react";
 
 const AdminHeader = () => {
   const { user, logout } = useAuthStore();
@@ -13,7 +13,12 @@ const AdminHeader = () => {
     navigate("/login");
   };
 
-  const adminNavItems = [
+  const baseNavItems = [
+    {
+      path: "/admin/pos",
+      label: "Bán hàng (PoS)",
+      icon: LayoutGrid,
+    },
     {
       path: "/admin/products",
       label: "Quản lý sản phẩm",
@@ -25,16 +30,26 @@ const AdminHeader = () => {
       icon: FileText,
     },
     {
-      path: "/admin/customers",
-      label: "Quản lý khách hàng",
-      icon: Users,
-    },
-    {
       path: "/admin/payments",
       label: "Quản lý thanh toán",
       icon: CreditCard,
     },
+    {
+      path: "/admin/staffs",
+      label: "Quản lý nhân sự",
+      icon: Users, // Using same icon, but you can change it
+    },
+    {
+      path: "/admin/discounts",
+      label: "Khuyến mãi",
+      icon: Ticket,
+    },
   ];
+
+  // Filter items based on role (staff should not see customers, payments, and staffs)
+  const adminNavItems = user?.role === 'tenant_staff' 
+    ? baseNavItems.filter(item => !['/admin/customers', '/admin/payments', '/admin/staffs'].includes(item.path))
+    : baseNavItems;
 
   const isActivePath = (path) => {
     return location.pathname === path || location.pathname.startsWith(path);
@@ -49,12 +64,12 @@ const AdminHeader = () => {
             {/* Logo */}
             <div className="flex items-center">
               <Link
-                to="/admin/products"
+                to={user?.role === 'tenant_staff' ? "/admin/pos" : "/admin/products"}
                 className="flex items-center space-x-2"
               >
                 <ShoppingBag className="w-8 h-8 text-green-700" />
                 <div className="text-xl font-bold text-green-700">
-                  Admin Panel
+                  Quản trị Cửa hàng
                 </div>
               </Link>
             </div>
@@ -90,7 +105,9 @@ const AdminHeader = () => {
                   <span className="font-medium text-gray-700">
                     {user?.name || "Admin"}
                   </span>
-                  <div className="text-xs text-green-600">Administrator</div>
+                  <div className="text-xs text-green-600">
+                    {user?.role === 'tenant_staff' ? 'Nhân viên' : 'Chủ cửa hàng'}
+                  </div>
                 </div>
               </div>
               <button
@@ -105,7 +122,7 @@ const AdminHeader = () => {
 
         {/* Mobile Navigation */}
         <div className="lg:hidden border-t border-gray-200">
-          <nav className="grid grid-cols-3 gap-1 p-2 bg-white">
+          <nav className="grid grid-cols-2 gap-1 p-2 bg-white sm:grid-cols-4">
             {adminNavItems.map((item) => {
               const Icon = item.icon;
               return (

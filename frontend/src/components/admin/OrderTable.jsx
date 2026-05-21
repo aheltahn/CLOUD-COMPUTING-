@@ -1,5 +1,5 @@
 import React from "react";
-import { Eye, Package, Clock, CheckCircle, XCircle, Truck } from "lucide-react";
+import { Eye, Edit, Package, Clock, CheckCircle, XCircle, Truck } from "lucide-react";
 
 const OrderTable = ({ orders, onViewDetails, onUpdateStatus }) => {
   const getStatusIcon = (status) => {
@@ -197,38 +197,13 @@ const OrderTable = ({ orders, onViewDetails, onUpdateStatus }) => {
                       <Eye className="w-4 h-4" />
                     </button>
 
-                    {canUpdateStatus(order.status) && (
-                      <button
-                        onClick={() => {
-                          const nextStatus = getNextStatus(order.status);
-                          if (nextStatus) {
-                            onUpdateStatus(order._id, nextStatus);
-                          }
-                        }}
-                        className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
-                        title={`Chuyển sang ${getStatusText(
-                          getNextStatus(order.status)
-                        )}`}
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                    )}
-
-                    {order.status === "pending" && (
-                      <button
-                        onClick={() =>
-                          onUpdateStatus(
-                            order._id,
-                            "cancelled",
-                            "Cancelled by admin"
-                          )
-                        }
-                        className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                        title="Hủy đơn hàng"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => onViewDetails(order)}
+                      className="text-amber-600 hover:text-amber-900 p-1 rounded hover:bg-amber-50"
+                      title="Chỉnh sửa đơn hàng"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
                   </div>
                 </td>
               </tr>

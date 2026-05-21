@@ -9,7 +9,9 @@ import multer from 'multer';   // Import Multer để xử lý upload file.
 import path from 'path';       // Import path để thao tác với đường dẫn file.
 import fs from 'fs';           // Import fs để thao tác với file hệ thống.
 import { fileURLToPath } from 'url'; // Dùng để lấy __dirname trong ES modules.
-import { createProduct, getProducts, getProductById, updateProduct, deleteProduct } from '../controllers/product.controller.js'; // Import các controller xử lý logic cho từng route.
+import { createProduct, getProducts, getProductById, updateProduct, deleteProduct, getProductAttributes } from '../controllers/product.controller.js';
+import { verifyToken, optionalVerifyToken } from '../middleware/verifyToken.js';
+import { verifyRole } from '../middleware/verifyTenant.js';
 
 const router = express.Router(); // Tạo một instance router của Express.
 
@@ -80,30 +82,32 @@ const upload = multer({
 
 // 1. Tạo sản phẩm mới (có thể upload ảnh)
 //    - POST /api/products
-//    - Middleware upload.single('image') xử lý upload 1 file ảnh với field name là 'image'
-//    - Controller createProduct xử lý logic tạo sản phẩm
-router.post('/', upload.single('image'), createProduct);
+//    - Yêu cầu: Đăng nhập và có quyền quản lý
+router.post('/', verifyToken, verifyRole('admin', 'tenant_admin'), upload.single('image'), createProduct);
 
 // 2. Lấy danh sách tất cả sản phẩm
 //    - GET /api/products
 //    - Controller getProducts trả về danh sách sản phẩm
-router.get('/', getProducts);
+router.get('/', optionalVerifyToken, getProducts);
 
-// 3. Lấy chi tiết một sản phẩm theo id
+// 3. Lấy thuộc tính sản phẩm (màu, size)
+//    - GET /api/products/attributes
+router.get('/attributes', optionalVerifyToken, getProductAttributes);
+
+// 4. Lấy chi tiết một sản phẩm theo id
 //    - GET /api/products/:id
 //    - Controller getProductById trả về chi tiết sản phẩm
 router.get('/:id', getProductById);
 
 // 4. Cập nhật sản phẩm (có thể upload ảnh mới)
 //    - PUT /api/products/:id
-//    - Middleware upload.single('image') xử lý upload ảnh mới nếu có
-//    - Controller updateProduct xử lý cập nhật thông tin sản phẩm
-router.put('/:id', upload.single('image'), updateProduct);
+//    - Yêu cầu: Đăng nhập và có quyền quản lý
+router.put('/:id', verifyToken, verifyRole('admin', 'tenant_admin', 'tenant_staff'), upload.single('image'), updateProduct);
 
 // 5. Xóa sản phẩm (thực chất chỉ cập nhật status thành 'unavailable')
 //    - DELETE /api/products/:id
-//    - Controller deleteProduct xử lý logic xóa (ẩn) sản phẩm
-router.delete('/:id', deleteProduct);
+//    - Yêu cầu: Đăng nhập và có quyền quản lý
+router.delete('/:id', verifyToken, verifyRole('admin', 'tenant_admin'), deleteProduct);
 
 // Xuất router để sử dụng ở file app.js hoặc index.js
 export default router;

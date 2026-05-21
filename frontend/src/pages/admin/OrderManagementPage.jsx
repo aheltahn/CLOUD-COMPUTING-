@@ -2,20 +2,19 @@ import React, { useEffect, useState } from "react";
 import AdminHeader from "../../components/admin/AdminHeader";
 import OrderTable from "../../components/admin/OrderTable";
 import OrderDetailModal from "../../components/admin/OrderDetailModal";
-import { Package, DollarSign, TrendingUp, Clock } from "lucide-react";
+import { Package, DollarSign, TrendingUp, Clock, XCircle } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
 
 const API_URL = "http://localhost:4173/api/orders";
 
 const TABS = [
   { key: "all", label: "Tất cả", color: "bg-blue-600" },
-  { key: "pending", label: "Chờ xử lý", color: "bg-yellow-600" },
-  { key: "processing", label: "Đang xử lý", color: "bg-orange-600" },
-  { key: "shipped", label: "Đã gửi", color: "bg-purple-600" },
   { key: "delivered", label: "Hoàn thành", color: "bg-green-600" },
   { key: "cancelled", label: "Đã hủy", color: "bg-red-600" },
 ];
 
 const OrderManagementPage = () => {
+  const { user } = useAuthStore();
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(false);
@@ -29,6 +28,8 @@ const OrderManagementPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("newest");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+
+  const isStaff = user?.role === 'tenant_staff';
 
   // Build query parameters
   const buildQueryParams = (page = 1) => {
@@ -73,12 +74,15 @@ const OrderManagementPage = () => {
 
   // Fetch order statistics
   const fetchStats = async () => {
+    if (isStaff) return; // Staff không có quyền xem stats
     try {
       const response = await fetch(`${API_URL}/admin/stats?period=30`, {
         credentials: "include",
       });
-      const data = await response.json();
-      setStats(data);
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
@@ -91,8 +95,8 @@ const OrderManagementPage = () => {
 
   useEffect(() => {
     fetchOrders();
-    fetchStats();
-  }, []);
+    if (!isStaff) fetchStats();
+  }, [isStaff]);
 
   // Handle page change
   const handlePageChange = (page) => {
@@ -101,20 +105,21 @@ const OrderManagementPage = () => {
   };
 
   // Update order status
-  const handleUpdateStatus = async (orderId, newStatus, note = "") => {
+  const handleUpdateStatus = async (orderId, updates, note = "") => {
     try {
+      const body = typeof updates === "string" ? { status: updates, note } : { ...updates, note };
       const response = await fetch(`${API_URL}/${orderId}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ status: newStatus, note }),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
         fetchOrders(currentPage);
-        fetchStats();
+        if (!isStaff) fetchStats();
         if (selectedOrder && selectedOrder._id === orderId) {
           const updatedOrder = await response.json();
           setSelectedOrder(updatedOrder.order);
@@ -156,56 +161,58 @@ const OrderManagementPage = () => {
       <div className="p-2 md:p-8 w-full max-w-7xl mx-auto pb-8">
         <h1 className="text-2xl font-bold mb-6 text-white">Quản lý đơn hàng</h1>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg p-4 shadow">
-            <div className="flex items-center">
-              <Package className="w-8 h-8 text-blue-600 mr-3" />
-              <div>
-                <p className="text-sm text-gray-600">Tổng đơn hàng</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalOrders || 0}
-                </p>
+        {/* Statistics Cards - Hidden for Staff */}
+        {!isStaff && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg p-4 shadow">
+              <div className="flex items-center">
+                <Package className="w-8 h-8 text-blue-600 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-600">Tổng đơn hàng</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {stats.totalOrders || 0}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg p-4 shadow">
-            <div className="flex items-center">
-              <DollarSign className="w-8 h-8 text-green-600 mr-3" />
-              <div>
-                <p className="text-sm text-gray-600">Doanh thu</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {(stats.totalRevenue || 0).toLocaleString("vi-VN")}đ
-                </p>
+            <div className="bg-white rounded-lg p-4 shadow">
+              <div className="flex items-center">
+                <DollarSign className="w-8 h-8 text-green-600 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-600">Doanh thu</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {(stats.totalRevenue || 0).toLocaleString("vi-VN")}đ
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg p-4 shadow">
-            <div className="flex items-center">
-              <Clock className="w-8 h-8 text-yellow-600 mr-3" />
-              <div>
-                <p className="text-sm text-gray-600">Chờ xử lý</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {getStatusCount("pending")}
-                </p>
+            <div className="bg-white rounded-lg p-4 shadow">
+              <div className="flex items-center">
+                <TrendingUp className="w-8 h-8 text-green-600 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-600">Hoàn thành</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {getStatusCount("delivered")}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg p-4 shadow">
-            <div className="flex items-center">
-              <TrendingUp className="w-8 h-8 text-purple-600 mr-3" />
-              <div>
-                <p className="text-sm text-gray-600">Hoàn thành</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {getStatusCount("delivered")}
-                </p>
+            <div className="bg-white rounded-lg p-4 shadow">
+              <div className="flex items-center">
+                <XCircle className="w-8 h-8 text-red-600 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-600">Đã hủy</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {getStatusCount("cancelled")}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white rounded-lg p-4 shadow mb-6">
@@ -222,7 +229,7 @@ const OrderManagementPage = () => {
                 }`}
               >
                 {tab.label}{" "}
-                {tab.key !== "all" && `(${getStatusCount(tab.key)})`}
+                {!isStaff && tab.key !== "all" && `(${getStatusCount(tab.key)})`}
               </button>
             ))}
           </div>

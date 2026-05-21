@@ -14,22 +14,13 @@ import {
     getCustomerStats
 } from '../controllers/customer.controller.js';
 
-const router = express.Router();
+import { verifyRole } from '../middleware/verifyTenant.js';
 
-// Middleware để verify token và check admin role
-const requireAdmin = (req, res, next) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({
-            success: false,
-            message: 'Chỉ admin mới có quyền truy cập'
-        });
-    }
-    next();
-};
+const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(verifyToken);
-router.use(requireAdmin);
+router.use(verifyRole(['tenant_admin', 'admin']));
 
 // Định nghĩa các route cho customer management:
 

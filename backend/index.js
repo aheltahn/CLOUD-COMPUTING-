@@ -12,9 +12,12 @@ import authRoutes from "./routes/auth.route.js";
 import productRoutes from "./routes/product.route.js";
 import inventoryRoutes from "./routes/inventory.route.js";
 import orderRoutes from "./routes/order.route.js";
-import wishlistRoutes from "./routes/wishlist.route.js";
 import customerRoutes from "./routes/customer.route.js";
 import paymentRoutes from "./routes/payment.route.js";
+import tenantRoutes from "./routes/tenant.route.js";
+import userRoutes from "./routes/user.route.js";
+import staffRoutes from "./routes/staff.route.js";
+import discountRoutes from "./routes/discount.route.js";
 
 dotenv.config();
 
@@ -92,7 +95,7 @@ console.log('📁 Public directory exists:', fs.existsSync(publicDir));
 app.use(cors({
     origin: ["http://localhost:5173", "http://localhost:3000", "http://localhost:5174"],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
 }));
 
@@ -211,9 +214,12 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/tenants", tenantRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/staffs", staffRoutes);
+app.use("/api/discounts", discountRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -374,11 +380,11 @@ app.use((error, req, res, next) => {
 
 app.listen(PORT, () => {
     connectDB();
-    console.log("🚀 Server is running on port:", PORT);
-    console.log("📁 Uploads directory accessible at: http://localhost:" + PORT + "/uploads");
-    console.log("🖼️  Placeholder image accessible at: http://localhost:" + PORT + "/placeholder-product.jpg");
-    console.log("🏥 Health check available at: http://localhost:" + PORT + "/api/health");
-    console.log("🐛 Debug uploads list at: http://localhost:" + PORT + "/api/debug/uploads");
+    console.log(" Server is running on port:", PORT);
+    console.log(" Uploads directory accessible at: http://localhost:" + PORT + "/uploads");
+    console.log(" Placeholder image accessible at: http://localhost:" + PORT + "/placeholder-product.jpg");
+    console.log(" Health check available at: http://localhost:" + PORT + "/api/health");
+    console.log(" Debug uploads list at: http://localhost:" + PORT + "/api/debug/uploads");
 
     // Test uploads directory
     if (fs.existsSync(actualUploadsDir)) {

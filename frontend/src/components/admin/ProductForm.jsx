@@ -5,6 +5,7 @@ const defaultValues = {
   price: "",
   inventory: "",
   status: "available",
+  category: "Khác",
   description: "",
   variant: [],
   image: null,
@@ -49,6 +50,12 @@ const ProductForm = ({ initialValues = {}, onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "status" && value === "unavailable") {
+      const confirmLock = window.confirm(
+        "Bạn có chắc muốn chuyển sang 'Ngưng sản xuất'? Sau khi xác nhận, trạng thái này sẽ bị khóa vĩnh viễn."
+      );
+      if (!confirmLock) return; // nếu hủy thì không đổi
+    }
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -97,8 +104,24 @@ const ProductForm = ({ initialValues = {}, onSubmit, onCancel }) => {
             </div>
           </div>
 
-          {/* Row 2: Inventory & Status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Row 2: Category, Inventory & Status */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block font-medium mb-1">Danh mục</label>
+              <select
+                name="category"
+                value={form.category || "Khác"}
+                onChange={handleChange}
+                className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Áo">Áo</option>
+                <option value="Quần">Quần</option>
+                <option value="Áo khoác">Áo khoác</option>
+                <option value="Váy">Váy</option>
+                <option value="Phụ kiện">Phụ kiện</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
             <div>
               <label className="block font-medium mb-1">Kho</label>
               <input
@@ -111,12 +134,15 @@ const ProductForm = ({ initialValues = {}, onSubmit, onCancel }) => {
               />
             </div>
             <div>
-              <label className="block font-medium mb-1">Trạng thái</label>
+              <label className="block font-medium mb-1">Trạng thái  {form.status === "unavailable" && (
+    <span className="text-red-500 text-sm">(Đã khóa)</span>
+  )}</label>
               <select
                 name="status"
                 value={form.status}
                 onChange={handleChange}
                 className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={form.status === "unavailable"} 
               >
                 <option value="available">Khả dụng</option>
                 <option value="unavailable">Ngưng sản xuất</option>

@@ -47,9 +47,17 @@ const EmailVerificationPage = () => {
 		e.preventDefault();
 		const verificationCode = code.join("");
 		try {
-			await verifyEmail(verificationCode);
-			navigate("/home");
+			const response = await verifyEmail(verificationCode);
 			toast.success("Email verified successfully");
+			
+			// Xử lý routing dựa trên role của user
+			if (response.user.role === "super_admin") {
+				navigate("/super-admin/tenants");
+			} else if (["admin", "tenant_admin"].includes(response.user.role)) {
+				navigate("/admin/products");
+			} else {
+				navigate("/home");
+			}
 		} catch (error) {
 			console.log(error);
 		}

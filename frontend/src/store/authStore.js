@@ -20,11 +20,11 @@ export const useAuthStore = create((set) => ({
 	isCheckingAuth: true, // Trạng thái đang kiểm tra xác thực ban đầu
 	message: null, // Lưu các thông báo thành công (ví dụ: gửi email thành công)
 
-	// Hàm đăng ký tài khoản mới
+	// Hàm đăng ký tài khoản mới (nhân viên/khách hàng)
 	signup: async (email, password, name) => {
 		set({ isLoading: true, error: null }); // Đặt trạng thái loading và xóa lỗi cũ
 		try {
-			// Gửi request POST tới endpoint /signup với dữ liệu email, password, name
+			// Gửi request POST tới endpoint /signup với dữ liệu
 			const response = await axios.post(`${API_URL}/signup`, { email, password, name });
 			// Nếu thành công, cập nhật user, đặt isAuthenticated = true, tắt loading
 			set({ user: response.data.user, isAuthenticated: true, isLoading: false });
@@ -32,6 +32,22 @@ export const useAuthStore = create((set) => ({
 			// Nếu có lỗi, cập nhật error với thông báo từ server hoặc thông báo mặc định, tắt loading
 			set({ error: error.response.data.message || "Error signing up", isLoading: false });
 			throw error; // Ném lỗi ra ngoài để component có thể xử lý tiếp
+		}
+	},
+
+	// Hàm đăng ký Cửa hàng mới (SaaS)
+	registerTenant: async (storeName, name, email, password, phone, address) => {
+		set({ isLoading: true, error: null });
+		try {
+			const response = await axios.post(`${API_URL}/register-tenant`, {
+				storeName, name, email, password, phone, address
+			});
+			// Do NOT set isAuthenticated because the backend doesn't return a JWT token for registerTenant.
+			// The user must explicitly log in afterwards.
+			set({ isLoading: false });
+		} catch (error) {
+			set({ error: error.response?.data?.message || "Error registering store", isLoading: false });
+			throw error;
 		}
 	},
 

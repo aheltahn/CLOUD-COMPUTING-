@@ -2,6 +2,9 @@ import Order from '../models/order.model.js';
 import Product from '../models/product.model.js';
 import { reduceInventory, increaseInventory } from './inventory.controller.js';
 import Payment from '../models/payment.model.js';
+import Tenant from '../models/tenant.model.js';
+import payos from '../utils/payos.js';
+import { sendInvoiceEmail } from '../mailtrap/emails.js';
 
 const VALID_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 const VALID_PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
@@ -23,14 +26,18 @@ const processImagePath = (imagePath) => {
 
 // Tạo đơn hàng mới
 export const createOrder = async (req, res) => {
+    console.log("Create Order Request Body:", req.body);
     try {
         const {
             items,
             shippingAddress,
-            paymentMethod,
+            paymentMethod: rawPaymentMethod,
             shippingFee = 0,
             discountAmount = 0,
             notes = "",
+            status: initialStatus,
+            paymentStatus: initialPaymentStatus,
+            isPos = false
         } = req.body;
 
         // Validate required fields
@@ -48,16 +55,24 @@ export const createOrder = async (req, res) => {
             });
         }
 
-        if (!paymentMethod) {
+        if (!rawPaymentMethod) {
             return res.status(400).json({
                 success: false,
                 message: "Vui lòng chọn phương thức thanh toán",
             });
         }
 
+        // Map payment method for PoS or use as is
+        let paymentMethod = rawPaymentMethod;
+        if (isPos) {
+            if (rawPaymentMethod === 'cash') paymentMethod = 'cod';
+            if (rawPaymentMethod === 'transfer') paymentMethod = 'bank_transfer';
+        }
+
         // Prepare order items and calculate total
         let totalAmount = 0;
         const orderItems = [];
+        let inferredTenantId = req.tenantId;
 
         for (const item of items) {
             const product = await Product.findById(item.productId);
@@ -68,40 +83,23 @@ export const createOrder = async (req, res) => {
                 });
             }
 
+            // Lấy tenantId từ sản phẩm nếu chưa có (dành cho marketplace customers)
+            if (!inferredTenantId) {
+                inferredTenantId = product.tenantId;
+            }
+
             // Check if product has variants
-            if (product.variants && product.variants.length > 0) {
-                // Product with variants - need color and size
-                if (!item.color || !item.size) {
+            if (product.variant && product.variant.length > 0 && (item.color || item.size)) {
+                // Inventory check
+                if (product.inventory < item.quantity) {
                     return res.status(400).json({
                         success: false,
-                        message: `Vui lòng chọn màu sắc và kích thước cho sản phẩm ${product.productName}`,
-                    });
-                }
-
-                // Find the specific variant
-                const variantIndex = product.variants.findIndex(
-                    (v) => v.color === item.color && v.size === item.size
-                );
-
-                if (variantIndex === -1) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `Không tìm thấy phiên bản ${item.color} - ${item.size} của sản phẩm ${product.productName}`,
-                    });
-                }
-
-                const variant = product.variants[variantIndex];
-
-                // Check inventory
-                if (variant.inventory < item.quantity) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `Sản phẩm ${product.productName} (${item.color} - ${item.size}) chỉ còn ${variant.inventory} sản phẩm`,
+                        message: `Sản phẩm ${product.productName} chỉ còn ${product.inventory} sản phẩm`,
                     });
                 }
 
                 // Update inventory
-                product.variants[variantIndex].inventory -= item.quantity;
+                product.inventory -= item.quantity;
                 await product.save();
 
                 // Add to order items with variant info
@@ -115,6 +113,7 @@ export const createOrder = async (req, res) => {
                         size: item.size
                     },
                     image: product.image || item.image,
+                    note: item.note
                 });
             } else {
                 // Product without variants - use main inventory
@@ -136,6 +135,7 @@ export const createOrder = async (req, res) => {
                     price: product.price,
                     quantity: item.quantity,
                     image: product.image || item.image,
+                    note: item.note
                 });
             }
 
@@ -148,44 +148,84 @@ export const createOrder = async (req, res) => {
         // Generate order number
         const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
+        // Đảm bảo có tenantId
+        if (!inferredTenantId) {
+            return res.status(400).json({
+                success: false,
+                message: "Không thể xác định cửa hàng cho đơn hàng này",
+            });
+        }
+
+        // Kiểm tra quyền PoS (admin/staff)
+        const canSetStatus = isPos && req.user && ['admin', 'tenant_admin', 'tenant_staff'].includes(req.user.role);
+        const finalOrderStatus = canSetStatus ? (initialStatus || 'delivered') : 'pending';
+        const finalPaymentStatus = canSetStatus ? (initialPaymentStatus || 'paid') : (paymentMethod === 'cod' ? 'pending' : 'processing');
+
+        // Bổ sung các trường bắt buộc cho PoS shipping address nếu thiếu
+        const finalShippingAddress = {
+            fullName: shippingAddress.fullName || "Khách lẻ",
+            phone: shippingAddress.phone || "0000000000",
+            address: shippingAddress.address || "Tại cửa hàng",
+            city: shippingAddress.city || "Tại cửa hàng",
+            district: shippingAddress.district || "Tại cửa hàng",
+            ward: shippingAddress.ward || "Tại cửa hàng"
+        };
+
         // Create order với cấu trúc phù hợp với schema
         const order = new Order({
             orderNumber,
-            customerId: req.user._id, // Changed from userId to customerId
+            tenantId: inferredTenantId,
+            customerId: req.userId || req.user?._id || null,
             customerInfo: {
-                name: req.user.name || shippingAddress.fullName,
-                email: req.user.email
+                name: finalShippingAddress.fullName,
+                email: shippingAddress.email || req.user?.email || ""
             },
             items: orderItems,
-            shippingAddress,
+            shippingAddress: finalShippingAddress,
             paymentMethod,
-            paymentStatus: paymentMethod === 'cod' ? 'pending' : 'processing',
+            paymentStatus: finalPaymentStatus,
             totalAmount,
             shippingFee,
             discountAmount,
             finalAmount,
             notes,
-            status: "pending",
+            status: finalOrderStatus,
             statusHistory: [{
-                status: "pending",
+                status: finalOrderStatus,
                 timestamp: new Date(),
-                note: "Order created",
-                updatedBy: req.user._id
+                note: isPos ? "Order created via POS" : "Order created",
+                updatedBy: req.userId || req.user?._id || null
             }]
         });
 
         await order.save();
 
+        // Increment usage count of promo code if applied
+        if (req.body.promoCode) {
+            try {
+                const Discount = (await import('../models/discount.model.js')).default;
+                await Discount.findOneAndUpdate(
+                    { tenantId: inferredTenantId, code: req.body.promoCode.trim().toUpperCase() },
+                    { $inc: { usageCount: 1 } }
+                );
+                console.log(`✅ Incremented usageCount for promoCode: ${req.body.promoCode}`);
+            } catch (discountErr) {
+                console.error("❌ Error incrementing promo code usageCount:", discountErr);
+            }
+        }
+
         // Create payment record
         const payment = new Payment({
             orderId: order._id,
-            userId: req.user._id,
+            tenantId: inferredTenantId,
+            userId: req.userId || req.user?._id || null,
             amount: finalAmount,
             currency: 'VND',
             paymentMethod: paymentMethod || 'cod',
             transactionId: Payment.generateTransactionId(),
-            status: paymentMethod === 'cod' ? 'pending' : 'processing',
-            description: `Thanh toán cho đơn hàng ${orderNumber}`,
+            status: finalPaymentStatus === 'paid' ? 'completed' : (paymentMethod === 'cod' ? 'pending' : 'processing'),
+            processedAt: finalPaymentStatus === 'paid' ? new Date() : undefined,
+            description: `Thanh toán cho đơn hàng ${orderNumber} ${isPos ? '(POS)' : ''}`,
             metadata: {
                 ipAddress: req.ip,
                 userAgent: req.headers['user-agent']
@@ -194,45 +234,126 @@ export const createOrder = async (req, res) => {
 
         await payment.save();
 
-        // Simulate payment processing for non-COD
-        if (paymentMethod !== 'cod') {
-            setTimeout(async () => {
-                try {
-                    const isSuccess = Math.random() > 0.1; // 90% success rate
+        // Fetch tenant info for invoice
+        const tenant = await Tenant.findById(inferredTenantId);
+        
+        // Prepare invoice data
+        const invoiceData = {
+            customerName: order.customerInfo.name,
+            storeName: tenant?.name || "Cửa hàng của chúng tôi",
+            transactionId: order.orderNumber,
+            orderDate: new Date(order.createdAt).toLocaleString('vi-VN'),
+            paymentMethod: order.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : 
+                           order.paymentMethod === 'bank_transfer' ? 'Chuyển khoản ngân hàng' : 
+                           order.paymentMethod === 'payos' ? 'Thanh toán Online (PayOS)' : order.paymentMethod,
+            orderItems: order.items,
+            subtotal: order.totalAmount,
+            shippingFee: order.shippingFee,
+            discountAmount: order.discountAmount,
+            totalAmount: order.finalAmount,
+            storeAddress: tenant?.address || "Đang cập nhật",
+            storePhone: tenant?.phone || "Đang cập nhật"
+        };
 
-                    if (isSuccess) {
-                        payment.status = 'completed';
-                        payment.processedAt = new Date();
-                        order.paymentStatus = 'paid';
-                    } else {
-                        payment.status = 'failed';
-                        payment.failureReason = 'Insufficient funds';
-                        order.paymentStatus = 'failed';
+        // Send invoice email (async)
+        if (order.customerInfo.email && (paymentMethod === 'cod' || finalPaymentStatus === 'paid')) {
+            sendInvoiceEmail(order.customerInfo.email, invoiceData);
+        }
+
+        // Handle PayOS Payment Link Creation
+        let checkoutUrl = null;
+        if ((paymentMethod === 'payos' || (isPos && paymentMethod === 'bank_transfer'))) {
+            if (!payos) {
+                console.error("❌ PayOS is not configured but was requested.");
+                // We don't throw error here to allow COD, but for payos method it's a problem
+                if (paymentMethod === 'payos') {
+                    // Revert inventory because order is invalid without payment link
+                    for (const item of order.items) {
+                        await increaseInventory(item.productId, item.quantity);
                     }
-
-                    await payment.save();
-                    await order.save();
-                } catch (error) {
-                    console.error('Error processing payment:', error);
+                    await Order.findByIdAndDelete(order._id);
+                    await Payment.findByIdAndDelete(payment._id);
+                    return res.status(500).json({
+                        success: false,
+                        message: "Cổng thanh toán Online chưa được cấu hình. Vui lòng thử lại sau hoặc chọn phương thức khác."
+                    });
                 }
-            }, 3000);
+            } else {
+                // For customer checkout or POS transfer
+                try {
+                    const orderItems = order.items.map(item => ({
+                        name: item.productName.slice(0, 50), // PayOS limit
+                        quantity: item.quantity,
+                        price: item.price
+                    }));
+
+                    const body = {
+                        orderCode: Number(Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000)), 
+                        amount: order.finalAmount,
+                        description: `Don hang ${order.orderNumber.slice(-10)}`,
+                        items: orderItems,
+                        returnUrl: isPos ? `http://localhost:5173/admin/pos` : `http://localhost:5173/order-success/${order._id}`,
+                        cancelUrl: isPos ? `http://localhost:5173/admin/pos` : `http://localhost:5173/checkout`,
+                    };
+
+                    // const paymentLinkResponse = await payos.createPaymentLink(body);
+                    // checkoutUrl = paymentLinkResponse.checkoutUrl;
+                    let paymentLinkResponse;
+
+try {
+    paymentLinkResponse = await payos.paymentRequests.create(body);
+    checkoutUrl = paymentLinkResponse.checkoutUrl;
+} catch (error) {
+    console.error("❌ PayOS createPaymentLink error:", error);
+
+    return res.status(500).json({
+        success: false,
+        message: "Không tạo được link PayOS",
+        error: error.message
+    });
+}
+
+                    // Update payment with PayOS info
+                    payment.metadata.payosOrderCode = body.orderCode;
+                    payment.metadata.paymentLinkId = paymentLinkResponse.paymentLinkId;
+                    await payment.save();
+                } catch (error) {
+                    console.error("PayOS API Error:", error);
+                    if (paymentMethod === 'payos') {
+                        // Revert if it's the only payment method
+                        for (const item of order.items) {
+                            await increaseInventory(item.productId, item.quantity);
+                        }
+                        await Order.findByIdAndDelete(order._id);
+                        await Payment.findByIdAndDelete(payment._id);
+                        return res.status(500).json({
+                            success: false,
+                            message: "Lỗi kết nối cổng thanh toán. Vui lòng thử lại.",
+                            error: error.message
+                        });
+                    }
+                }
+            }
         }
 
         res.status(201).json({
             success: true,
-            message: "Đặt hàng thành công",
+            message: isPos ? "Đã tạo đơn hàng" : "Đặt hàng thành công",
             order,
-            paymentId: payment._id
+            paymentId: payment._id,
+            checkoutUrl // Return PayOS link if created
         });
     } catch (error) {
-        console.error("Error creating order:", error);
+        console.error("❌ ERROR CREATING ORDER:", error.stack || error);
         res.status(500).json({
             success: false,
             message: "Không thể tạo đơn hàng",
             error: error.message,
+            stack: error.stack
         });
     }
 };
+
 
 // Lấy danh sách đơn hàng (Admin)
 export const getOrders = async (req, res) => {
@@ -253,6 +374,9 @@ export const getOrders = async (req, res) => {
         const skip = (pageNum - 1) * limitNum;
 
         let filter = {};
+        if (req.tenantId) {
+            filter.tenantId = req.tenantId;
+        }
 
         if (status && status !== 'all') {
             filter.status = status;
@@ -333,8 +457,11 @@ export const getOrders = async (req, res) => {
 // Lấy chi tiết đơn hàng
 export const getOrderById = async (req, res) => {
     try {
+        const query = { _id: req.params.id };
+        if (req.tenantId) query.tenantId = req.tenantId;
+
         const order = await Order
-            .findById(req.params.id)
+            .findOne(query)
             .populate('customerId', 'name email')
             .populate('items.productId', 'productName image inventory status')
             .populate('statusHistory.updatedBy', 'name');
@@ -362,18 +489,12 @@ export const getOrderById = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, paymentStatus, paymentMethod, note } = req.body;
 
-        // Validate status
-        const validStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: "Trạng thái không hợp lệ",
-            });
-        }
+        const query = { _id: id };
+        if (req.tenantId) query.tenantId = req.tenantId;
 
-        const order = await Order.findById(id);
+        const order = await Order.findOne(query);
         if (!order) {
             return res.status(404).json({
                 success: false,
@@ -381,54 +502,106 @@ export const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // Update order status
-        order.status = status;
+        const oldStatus = order.status;
+        const oldPaymentStatus = order.paymentStatus;
+        const oldPaymentMethod = order.paymentMethod;
 
-        // Update payment status based on order status
-        if (status === 'delivered') {
-            order.paymentStatus = 'paid';
-
-            // Update payment record
-            const payment = await Payment.findOne({ orderId: order._id });
-            if (payment && payment.paymentMethod === 'cod') {
-                payment.status = 'completed';
-                payment.processedAt = new Date();
-                await payment.save();
+        // 1. Update Order Status
+        if (status) {
+            const validStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"];
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Trạng thái đơn hàng không hợp lệ",
+                });
             }
-        } else if (status === 'cancelled') {
-            // Update payment record
-            const payment = await Payment.findOne({ orderId: order._id });
-            if (payment && payment.status === 'pending') {
-                payment.status = 'failed';
-                payment.failureReason = 'Order cancelled';
-                await payment.save();
+
+            order.status = status;
+
+            // Handle inventory adjustment
+            if (status === "cancelled" && oldStatus !== "cancelled") {
+                // Return items to inventory
+                for (const item of order.items) {
+                    await increaseInventory(item.productId, item.quantity);
+                }
+            } else if (status === "delivered" && oldStatus === "cancelled") {
+                // Deduct items from inventory again
+                for (const item of order.items) {
+                    await reduceInventory(item.productId, item.quantity);
+                }
             }
-        }
 
-        // Handle inventory for cancelled orders
-        if (status === "cancelled" && order.status !== "cancelled") {
-            // Return items to inventory
-            for (const item of order.items) {
-                const product = await Product.findById(item.productId);
-                if (product) {
-                    // Find the variant
-                    const variantIndex = product.variants.findIndex(
-                        v => v.color === item.color && v.size === item.size
-                    );
-
-                    if (variantIndex !== -1) {
-                        product.variants[variantIndex].inventory += item.quantity;
-                        await product.save();
-                    }
+            // Sync payment status for delivered/cancelled if not explicitly provided
+            if (!paymentStatus) {
+                if (status === 'delivered') {
+                    order.paymentStatus = 'paid';
+                } else if (status === 'cancelled') {
+                    order.paymentStatus = 'failed';
                 }
             }
         }
+
+        // 2. Update Payment Status
+        if (paymentStatus) {
+            const validPaymentStatuses = ['pending', 'processing', 'paid', 'failed', 'refunded'];
+            if (!validPaymentStatuses.includes(paymentStatus)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Trạng thái thanh toán không hợp lệ",
+                });
+            }
+            order.paymentStatus = paymentStatus;
+        }
+
+        // 3. Update Payment Method
+        if (paymentMethod) {
+            const validPaymentMethods = ['cod', 'bank_transfer', 'e_wallet', 'payos'];
+            if (!validPaymentMethods.includes(paymentMethod)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Phương thức thanh toán không hợp lệ",
+                });
+            }
+            order.paymentMethod = paymentMethod;
+        }
+
+        // 4. Update matching Payment record if it exists
+        const payment = await Payment.findOne({ orderId: order._id });
+        if (payment) {
+            if (paymentMethod) payment.paymentMethod = paymentMethod;
+            if (paymentStatus) {
+                payment.status = paymentStatus === 'paid' ? 'completed' : 
+                                 paymentStatus === 'failed' ? 'failed' : 
+                                 paymentStatus === 'refunded' ? 'refunded' : 'pending';
+                if (paymentStatus === 'paid') {
+                    payment.processedAt = new Date();
+                }
+            }
+            await payment.save();
+        }
+
+        // 5. Add custom status history
+        let historyNote = note || '';
+        if (!historyNote) {
+            const changes = [];
+            if (status && status !== oldStatus) changes.push(`Trạng thái: ${oldStatus} -> ${status}`);
+            if (paymentStatus && paymentStatus !== oldPaymentStatus) changes.push(`Thanh toán: ${oldPaymentStatus} -> ${paymentStatus}`);
+            if (paymentMethod && paymentMethod !== oldPaymentMethod) changes.push(`Phương thức: ${oldPaymentMethod} -> ${paymentMethod}`);
+            historyNote = `Cập nhật đơn hàng (${changes.join(', ')})`;
+        }
+
+        order.statusHistory.push({
+            status: status || order.status,
+            timestamp: new Date(),
+            note: historyNote,
+            updatedBy: req.userId || req.user?._id || null
+        });
 
         await order.save();
 
         res.json({
             success: true,
-            message: "Cập nhật trạng thái đơn hàng thành công",
+            message: "Cập nhật đơn hàng thành công",
             order,
         });
     } catch (error) {
@@ -486,6 +659,10 @@ export const getCustomerOrders = async (req, res) => {
         const skip = (pageNum - 1) * limitNum;
 
         let filter = { customerId };
+        if (req.tenantId) {
+            filter.tenantId = req.tenantId;
+        }
+
         if (status && status !== 'all') {
             filter.status = status;
         }
@@ -616,14 +793,19 @@ export const getOrderStats = async (req, res) => {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - parseInt(period));
 
+        const matchStage = { createdAt: { $gte: startDate } };
+        if (req.tenantId) matchStage.tenantId = req.tenantId;
+
         const stats = await Order.aggregate([
-            { $match: { createdAt: { $gte: startDate } } },
+            { $match: matchStage },
             { $group: { _id: '$status', count: { $sum: 1 }, totalAmount: { $sum: '$finalAmount' } } }
         ]);
 
-        const totalOrders = await Order.countDocuments({ createdAt: { $gte: startDate } });
+        const totalOrders = await Order.countDocuments(matchStage);
+        
+        const revMatchStage = { ...matchStage, status: { $ne: 'cancelled' } };
         const totalRevenue = await Order.aggregate([
-            { $match: { createdAt: { $gte: startDate }, status: { $ne: 'cancelled' } } },
+            { $match: revMatchStage },
             { $group: { _id: null, total: { $sum: '$finalAmount' } } }
         ]);
 
@@ -637,4 +819,3 @@ export const getOrderStats = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-

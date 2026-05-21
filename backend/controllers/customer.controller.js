@@ -20,6 +20,7 @@ export const getCustomers = async (req, res) => {
 
     // Build filter
     let filter = {
+      tenantId: req.tenantId, // Lọc theo Store
       $and: [
         {
           $or: [
@@ -147,7 +148,7 @@ export const getCustomerById = async (req, res) => {
         const { id } = req.params;
 
         const customer = await User.findById(id, '-password');
-        if (!customer || customer.role !== 'user') {
+        if (!customer || customer.role !== 'user' || customer.tenantId?.toString() !== req.tenantId?.toString()) {
             return res.status(404).json({
                 success: false,
                 message: 'Không tìm thấy khách hàng'
@@ -222,7 +223,7 @@ export const updateCustomer = async (req, res) => {
 
         // Check if customer exists
         const existingCustomer = await User.findById(id);
-        if (!existingCustomer || existingCustomer.role !== 'user') {
+        if (!existingCustomer || existingCustomer.role !== 'user' || existingCustomer.tenantId?.toString() !== req.tenantId?.toString()) {
             return res.status(404).json({
                 success: false,
                 message: 'Không tìm thấy khách hàng'
@@ -277,7 +278,7 @@ export const deleteCustomer = async (req, res) => {
         const { id } = req.params;
 
         const customer = await User.findById(id);
-        if (!customer || customer.role !== 'user') {
+        if (!customer || customer.role !== 'user' || customer.tenantId?.toString() !== req.tenantId?.toString()) {
             return res.status(404).json({
                 success: false,
                 message: 'Không tìm thấy khách hàng'
@@ -364,7 +365,7 @@ export const getCustomerStats = async (req, res) => {
 
         // Overall stats
         const overallStats = await User.aggregate([
-            { $match: { role: 'user' } },
+            { $match: { role: 'user', tenantId: req.tenantId } },
             {
                 $group: {
                     _id: null,
@@ -378,12 +379,13 @@ export const getCustomerStats = async (req, res) => {
         // New registrations in period
         const newRegistrations = await User.countDocuments({
             role: 'user',
+            tenantId: req.tenantId,
             createdAt: dateFilter
         });
 
         // Customer growth over time
         const growthData = await User.aggregate([
-            { $match: { role: 'user', createdAt: dateFilter } },
+            { $match: { role: 'user', tenantId: req.tenantId, createdAt: dateFilter } },
             {
                 $group: {
                     _id: {
@@ -399,7 +401,7 @@ export const getCustomerStats = async (req, res) => {
 
         // Top customers by spending
         const topCustomers = await User.aggregate([
-            { $match: { role: 'user' } },
+            { $match: { role: 'user', tenantId: req.tenantId } },
             {
                 $lookup: {
                     from: 'orders',

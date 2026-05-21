@@ -3,6 +3,7 @@ import ProductTable from "../../components/admin/ProductTable";
 import ProductForm from "../../components/admin/ProductForm";
 import ConfirmModal from "../../components/admin/ConfirmModal";
 import AdminHeader from "../../components/admin/AdminHeader";
+import { useAuthStore } from "../../store/authStore";
 
 const API_URL = "http://localhost:4173/api/products";
 
@@ -13,6 +14,7 @@ const TABS = [
 ];
 
 const ProductManagementPage = () => {
+  const { user } = useAuthStore();
   const [products, setProducts] = useState([]);
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(false);
@@ -42,7 +44,7 @@ const ProductManagementPage = () => {
     setLoading(true);
     try {
       const queryParams = buildQueryParams(page);
-      const response = await fetch(`${API_URL}?${queryParams}`);
+      const response = await fetch(`${API_URL}?${queryParams}`, { credentials: "include" });
       const data = await response.json();
 
       // Handle new response format
@@ -92,6 +94,7 @@ const ProductManagementPage = () => {
       const response = await fetch(url, {
         method,
         body,
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -119,7 +122,13 @@ const ProductManagementPage = () => {
     if (!productToDelete) return;
 
     try {
-      await fetch(`${API_URL}/${productToDelete._id}`, { method: "DELETE" });
+      const response = await fetch(`${API_URL}/${productToDelete._id}`, { method: "DELETE", credentials: "include" });
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(errorData.message || "Không có quyền thực hiện hành động này");
+        setShowConfirm(false);
+        return;
+      }
       setShowConfirm(false);
       setProductToDelete(null);
 
@@ -165,15 +174,17 @@ const ProductManagementPage = () => {
           </div>
 
           <div className="flex gap-2">
-            <button
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              onClick={() => {
-                setShowForm(true);
-                setEditingProduct(null);
-              }}
-            >
-              + Thêm sản phẩm
-            </button>
+            {user?.role !== 'tenant_staff' && (
+              <button
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                onClick={() => {
+                  setShowForm(true);
+                  setEditingProduct(null);
+                }}
+              >
+                + Thêm sản phẩm
+              </button>
+            )}
             <input
               className="border px-2 py-1 rounded"
               placeholder="Tìm kiếm sản phẩm..."
@@ -191,6 +202,7 @@ const ProductManagementPage = () => {
         ) : (
           <ProductTable
             products={products}
+            userRole={user?.role}
             onEdit={(product) => {
               setShowForm(true);
               setEditingProduct(product);

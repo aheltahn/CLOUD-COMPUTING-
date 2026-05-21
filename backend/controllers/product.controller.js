@@ -82,6 +82,7 @@ export const createProduct = async (req, res) => {
         }
         const product = new Product({
             ...req.body,
+            tenantId: req.tenantId,
             variant,
             image: imagePath // Sử dụng đường dẫn đã chuẩn hóa
         });
@@ -101,6 +102,9 @@ export const getProducts = async (req, res) => {
             limit = 12,
             search = '',
             status = '',
+            category = '',
+            size = '',
+            color = '',
             sortBy = 'newest',
             priceMin = '',
             priceMax = ''
@@ -111,6 +115,20 @@ export const getProducts = async (req, res) => {
         const skip = (pageNum - 1) * limitNum;
 
         let filter = {};
+        if (req.tenantId) {
+            filter.tenantId = req.tenantId;
+        }
+
+        if (category && category !== 'all') {
+            filter.category = category;
+        }
+
+        // Logic lọc theo Size và Color trong mảng variant
+        if (size || color) {
+            filter.variant = { $elemMatch: {} };
+            if (size) filter.variant.$elemMatch.size = size;
+            if (color) filter.variant.$elemMatch.color = { $regex: new RegExp(color, 'i') };
+        }
 
         if (search) {
             filter.$or = [
@@ -119,7 +137,24 @@ export const getProducts = async (req, res) => {
             ];
         }
 
-        if (status && status !== 'all') {
+        // Logic lọc trạng thái thông minh
+        if (status === 'available') {
+            // Khả dụng: Trạng thái available VÀ còn hàng
+            filter.status = 'available';
+            filter.inventory = { $gt: 0 };
+        } else if (status === 'out_of_stock') {
+            // Hết hàng: Trạng thái out_of_stock HOẶC inventory = 0 (nhưng không phải unavailable)
+            filter.$and = [
+                { status: { $ne: 'unavailable' } },
+                {
+                    $or: [
+                        { status: 'out_of_stock' },
+                        { inventory: { $lte: 0 } }
+                    ]
+                }
+            ];
+        } else if (status && status !== 'all') {
+            // Các trạng thái khác (như unavailable)
             filter.status = status;
         }
 
@@ -173,6 +208,7 @@ export const getProducts = async (req, res) => {
             pagination: {
                 currentPage: pageNum,
                 totalPages,
+                totalOrders: totalProducts, // Cần đồng nhất với tên trường ở frontend nếu cần
                 totalProducts,
                 hasNextPage: pageNum < totalPages,
                 hasPrevPage: pageNum > 1,
@@ -185,10 +221,33 @@ export const getProducts = async (req, res) => {
     }
 };
 
+// Lấy tất cả thuộc tính (màu, size) hiện có trong hệ thống
+export const getProductAttributes = async (req, res) => {
+    try {
+        let filter = {};
+        if (req.tenantId) {
+            filter.tenantId = req.tenantId;
+        }
+        
+        const colors = await Product.distinct('variant.color', filter);
+        const sizes = await Product.distinct('variant.size', filter);
+        
+        const validColors = colors.filter(c => c && c.trim() !== '').sort();
+        const validSizes = sizes.filter(s => s && s.trim() !== '').sort();
+
+        res.json({ colors: validColors, sizes: validSizes });
+    } catch (error) {
+        console.error('Error getting attributes:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Lấy chi tiết sản phẩm
 export const getProductById = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const query = { _id: req.params.id };
+        if (req.tenantId) query.tenantId = req.tenantId;
+        const product = await Product.findOne(query);
         if (!product) return res.status(404).json({ message: 'Product not found' });
 
         // Chuẩn hóa đường dẫn hình ảnh
@@ -254,14 +313,17 @@ export const updateProduct = async (req, res) => {
             updateData.productName = req.body.productName;
         }
 
-        const allowedFields = ['price', 'description'];
+        const allowedFields = ['price', 'description', 'category'];
         allowedFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 updateData[field] = req.body[field];
             }
         });
 
-        const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        const query = { _id: req.params.id };
+        if (req.tenantId) query.tenantId = req.tenantId;
+        
+        const product = await Product.findOneAndUpdate(query, updateData, { new: true });
         if (!product) return res.status(404).json({ message: 'Product not found' });
 
         // Chuẩn hóa đường dẫn hình ảnh trong kết quả trả về
@@ -278,8 +340,11 @@ export const updateProduct = async (req, res) => {
 // Xóa sản phẩm (chỉ cập nhật status thành 'unavailable')
 export const deleteProduct = async (req, res) => {
     try {
-        const product = await Product.findByIdAndUpdate(
-            req.params.id,
+        const query = { _id: req.params.id };
+        if (req.tenantId) query.tenantId = req.tenantId;
+
+        const product = await Product.findOneAndUpdate(
+            query,
             { status: 'unavailable' },
             { new: true }
         );

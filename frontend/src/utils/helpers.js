@@ -60,7 +60,7 @@ export const formatOrderStatus = (status) => {
         pending: 'Chờ xử lý',
         confirmed: 'Đã xác nhận',
         shipped: 'Đang giao hàng',
-        delivered: 'Đã giao hàng',
+        delivered: 'Hoàn thành',
         cancelled: 'Đã hủy',
     };
 

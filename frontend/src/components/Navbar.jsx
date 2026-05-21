@@ -6,7 +6,6 @@ import {
   User,
   Package,
   History,
-  Settings,
   Shield,
 } from "lucide-react";
 import { useState } from "react";
@@ -30,7 +29,7 @@ const Navbar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <ShoppingBag className="h-8 w-8 text-green-400" />
-            <span className="text-xl font-bold text-white">Interior </span>
+            <span className="text-xl font-bold text-white">StyleZone </span>
           </Link>
 
           {/* Navigation Links */}
@@ -41,19 +40,13 @@ const Navbar = () => {
             >
               Trang chủ
             </Link>
-            <Link
-              to="/products"
-              className="text-gray-300 hover:text-white transition-colors duration-200"
-            >
-              Sản phẩm
-            </Link>
-            {isAuthenticated && user?.role === "admin" && (
+            {isAuthenticated && ["admin", "super_admin", "tenant_admin"].includes(user?.role) && (
               <Link
-                to="/admin"
+                to={user?.role === "super_admin" ? "/super-admin/tenants" : "/admin/products"}
                 className="text-gray-300 hover:text-white transition-colors duration-200 flex items-center gap-1"
               >
                 <Shield className="h-4 w-4" />
-                Quản trị
+                {user?.role === "super_admin" ? "Hệ thống SaaS" : "Quản trị"}
               </Link>
             )}
           </div>
@@ -90,68 +83,56 @@ const Navbar = () => {
                         <div className="flex items-center gap-2 mt-1">
                           <span
                             className={`px-2 py-1 rounded-full text-xs ${
-                              user?.role === "admin"
+                              ["admin", "super_admin", "tenant_admin"].includes(user?.role)
                                 ? "bg-purple-100 text-purple-800"
                                 : "bg-green-100 text-green-800"
                             }`}
                           >
-                            {user?.role === "admin"
-                              ? "Quản trị viên"
-                              : "Khách hàng"}
+                            {["admin", "super_admin", "tenant_admin"].includes(user?.role)
+                              ? (user?.role === "super_admin" ? "Super Admin" : "Quản trị viên")
+                              : "Nhân viên"}
                           </span>
                         </div>
+                        {user?.role === "tenant_admin" && user?.tenantId && (
+                          <div className="mt-2 text-xs text-gray-400 break-all cursor-pointer hover:text-blue-300 transition-colors" title="Copy Store ID" onClick={() => navigator.clipboard.writeText(user.tenantId)}>
+                            Store ID: <span className="font-mono text-blue-300">{user.tenantId}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Menu Items */}
                       <div className="py-1">
-                        <Link
-                          to="/dashboard"
-                          className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                          onClick={() => setShowDropdown(false)}
-                        >
-                          <User className="h-4 w-4 mr-3" />
-                          Tài khoản
-                        </Link>
-
-                        {/* Order History - Only for customers */}
-                        {user?.role !== "admin" && (
-                          <Link
-                            to="/orders"
-                            className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                            onClick={() => setShowDropdown(false)}
-                          >
-                            <History className="h-4 w-4 mr-3" />
-                            Lịch sử đơn hàng
-                          </Link>
-                        )}
-
                         {/* Admin Panel Link */}
-                        {user?.role === "admin" && (
+                        {["admin", "super_admin", "tenant_admin"].includes(user?.role) && (
                           <>
                             <Link
-                              to="/admin"
+                              to={user?.role === "super_admin" ? "/super-admin/tenants" : "/admin/products"}
                               className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
                               onClick={() => setShowDropdown(false)}
                             >
                               <Shield className="h-4 w-4 mr-3" />
-                              Quản trị hệ thống
+                              {user?.role === "super_admin" ? "Quản lý Hệ thống SaaS" : "Quản trị Cửa hàng"}
                             </Link>
-                            <Link
-                              to="/admin/products"
-                              className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                              onClick={() => setShowDropdown(false)}
-                            >
-                              <Package className="h-4 w-4 mr-3" />
-                              Quản lý sản phẩm
-                            </Link>
-                            <Link
-                              to="/admin/orders"
-                              className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                              onClick={() => setShowDropdown(false)}
-                            >
-                              <History className="h-4 w-4 mr-3" />
-                              Quản lý đơn hàng
-                            </Link>
+                            {user?.role !== "super_admin" && (
+                              <>
+                                <Link
+                                  to="/admin/products"
+                                  className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
+                                  onClick={() => setShowDropdown(false)}
+                                >
+                                  <Package className="h-4 w-4 mr-3" />
+                                  Quản lý sản phẩm
+                                </Link>
+                                <Link
+                                  to="/admin/orders"
+                                  className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
+                                  onClick={() => setShowDropdown(false)}
+                                >
+                                  <History className="h-4 w-4 mr-3" />
+                                  Quản lý đơn hàng
+                                </Link>
+                              </>
+                            )}
                           </>
                         )}
 
@@ -180,7 +161,7 @@ const Navbar = () => {
                   Đăng nhập
                 </Link>
                 <Link
-                  to="/signup"
+                  to="/register-store"
                   className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
                 >
                   Đăng ký
@@ -199,26 +180,12 @@ const Navbar = () => {
             >
               Trang chủ
             </Link>
-            <Link
-              to="/products"
-              className="block px-3 py-2 text-gray-300 hover:text-white transition-colors duration-200"
-            >
-              Sản phẩm
-            </Link>
-            {isAuthenticated && user?.role !== "admin" && (
+            {isAuthenticated && ["admin", "super_admin", "tenant_admin"].includes(user?.role) && (
               <Link
-                to="/orders"
+                to={user?.role === "super_admin" ? "/super-admin/tenants" : "/admin/products"}
                 className="block px-3 py-2 text-gray-300 hover:text-white transition-colors duration-200"
               >
-                Lịch sử đơn hàng
-              </Link>
-            )}
-            {isAuthenticated && user?.role === "admin" && (
-              <Link
-                to="/admin"
-                className="block px-3 py-2 text-gray-300 hover:text-white transition-colors duration-200"
-              >
-                Quản trị hệ thống
+                {user?.role === "super_admin" ? "Hệ thống SaaS" : "Quản trị hệ thống"}
               </Link>
             )}
           </div>

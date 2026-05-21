@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const productSchema = new mongoose.Schema({
+    tenantId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tenant',
+        required: true
+    },
     productName: {
         type: String,
         required: true,
@@ -18,6 +23,12 @@ const productSchema = new mongoose.Schema({
     image: {
         type: String,
         default: ''
+    },
+    category: {
+        type: String,
+        enum: ['Áo', 'Quần', 'Áo khoác', 'Váy', 'Phụ kiện', 'Khác'],
+        default: 'Khác',
+        required: true
     },
     status: {
         type: String,

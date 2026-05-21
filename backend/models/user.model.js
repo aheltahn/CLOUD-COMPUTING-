@@ -25,8 +25,21 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
+      enum: ["user", "admin", "super_admin", "tenant_admin", "tenant_staff", "customer"],
       default: "user",
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      default: null,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    lockReason: {
+      type: String,
+      default: "",
     },
     lastLogin: {
       type: Date,
