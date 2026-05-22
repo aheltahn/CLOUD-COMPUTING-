@@ -101,7 +101,7 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }) => {
   };
 
   const getImageUrl = (item) => {
-    const fallback = "http://localhost:4173/placeholder-product.jpg";
+    const fallback = `${import.meta.env.VITE_API_URL || ""}/placeholder-product.jpg`;
 
     // Lấy image từ nhiều nguồn có thể
     const image = item.image || item._doc?.image || item.productId?.image;
@@ -116,7 +116,7 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }) => {
 
     // Xử lý đường dẫn image (loại bỏ / ở đầu nếu có và chuyển \ thành /)
     const cleanPath = image.replace(/\\/g, "/").replace(/^\/+/, "");
-    const fullUrl = `http://localhost:4173/${cleanPath}`;
+    const fullUrl = `${import.meta.env.VITE_API_URL || ""}/${cleanPath}`;
     console.log("Final image URL:", fullUrl); // Debug final URL
 
     return fullUrl;

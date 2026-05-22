@@ -7,8 +7,8 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-const API_PRODUCTS_URL = "http://localhost:4173/api/products";
-const API_ORDERS_URL = "http://localhost:4173/api/orders";
+const API_PRODUCTS_URL = `${import.meta.env.VITE_API_URL || ""}/api/products`;
+const API_ORDERS_URL = `${import.meta.env.VITE_API_URL || ""}/api/orders`;
 
 const POSPage = () => {
   const [products, setProducts] = useState([]);
@@ -129,7 +129,7 @@ const POSPage = () => {
   // Fetch active promo codes
   const fetchPromoCodes = async () => {
     try {
-      const response = await fetch("http://localhost:4173/api/discounts?isActive=true&limit=50", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/discounts?isActive=true&limit=50`, {
         credentials: "include"
       });
       const data = await response.json();
@@ -157,7 +157,7 @@ const POSPage = () => {
     
     setPromoError("");
     try {
-      const response = await fetch("http://localhost:4173/api/discounts/check", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/discounts/check`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: code.trim(), orderAmount: subtotal }),
@@ -230,7 +230,7 @@ const POSPage = () => {
       const verifyPayment = async () => {
         const loadingToast = toast.loading("Đang xác thực trạng thái thanh toán từ PayOS...");
         try {
-          const response = await fetch("http://localhost:4173/api/payments/verify-payos", {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/payments/verify-payos`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -686,7 +686,7 @@ const POSPage = () => {
                     <div className="aspect-[4/5] bg-gray-100 relative">
                       {product.image ? (
                         <img
-                          src={`http://localhost:4173${product.image}`}
+                          src={`${import.meta.env.VITE_API_URL || ""}${product.image}`}
                           alt={product.productName}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -811,7 +811,7 @@ const POSPage = () => {
               cart.map((item) => (
                 <div key={item.cartItemId} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
                   <div className="flex gap-3">
-                    <img src={item.image ? `http://localhost:4173${item.image}` : "/placeholder.png"} className="w-16 h-16 object-cover rounded-xl shadow-sm" alt="" />
+                    <img src={item.image ? `${import.meta.env.VITE_API_URL || ""}${item.image}` : "/placeholder.png"} className="w-16 h-16 object-cover rounded-xl shadow-sm" alt="" />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
                         <div>
@@ -1025,7 +1025,7 @@ const POSPage = () => {
               <div className="flex gap-6">
                 <div className="w-32 h-40 bg-gray-50 rounded-2xl overflow-hidden shadow-inner flex-shrink-0">
                   {selectedProduct.image ? (
-                    <img src={`http://localhost:4173${selectedProduct.image}`} alt={selectedProduct.productName} className="w-full h-full object-cover" />
+                    <img src={`${import.meta.env.VITE_API_URL || ""}${selectedProduct.image}`} alt={selectedProduct.productName} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Image</div>
                   )}

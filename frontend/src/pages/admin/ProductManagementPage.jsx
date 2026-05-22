@@ -5,7 +5,7 @@ import ConfirmModal from "../../components/admin/ConfirmModal";
 import AdminHeader from "../../components/admin/AdminHeader";
 import { useAuthStore } from "../../store/authStore";
 
-const API_URL = "http://localhost:4173/api/products";
+const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/products`;
 
 const TABS = [
   { key: "all", label: "Tất cả" },

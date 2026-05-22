@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 
-const API_URL = 'http://localhost:4173/api/wishlist';
+const API_URL = `${import.meta.env.VITE_API_URL || ''}/api/wishlist`;
 
 export const useWishlistStore = create(
     persist(

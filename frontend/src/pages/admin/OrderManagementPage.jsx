@@ -5,7 +5,7 @@ import OrderDetailModal from "../../components/admin/OrderDetailModal";
 import { Package, DollarSign, TrendingUp, Clock, XCircle } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 
-const API_URL = "http://localhost:4173/api/orders";
+const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/orders`;
 
 const TABS = [
   { key: "all", label: "Tất cả", color: "bg-blue-600" },

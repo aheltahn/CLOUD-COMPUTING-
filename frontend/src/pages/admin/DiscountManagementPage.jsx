@@ -3,7 +3,7 @@ import AdminHeader from "../../components/admin/AdminHeader";
 import { useAuthStore } from "../../store/authStore";
 import { toast } from "react-hot-toast";
 
-const API_URL = "http://localhost:4173/api/discounts";
+const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/discounts`;
 
 const TABS = [
   { key: "all", label: "Tất cả" },

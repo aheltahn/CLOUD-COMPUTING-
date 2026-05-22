@@ -31,9 +31,9 @@ const ProductTable = ({ products, onEdit, onDelete, onUploadImage, userRole }) =
               <tr key={product._id}>
                 <td className="px-2 md:px-4 py-2 border">
                   {product.image ? (
-                    // <img src={`http://localhost:4173/${product.image.replace(/\\/g, '/')}`} alt={product.productName} className="w-12 h-12 md:w-16 md:h-16 object-cover rounded" />
+                    // <img src={`${import.meta.env.VITE_API_URL || ""}/${product.image.replace(/\\/g, '/')}`} alt={product.productName} className="w-12 h-12 md:w-16 md:h-16 object-cover rounded" />
                     <img
-                      src={`http://localhost:4173${product.image}`}
+                      src={`${import.meta.env.VITE_API_URL || ""}${product.image}`}
                       alt={product.productName}
                       className="w-12 h-12 md:w-16 md:h-16 object-cover rounded"
                     />
